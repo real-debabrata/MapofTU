@@ -1,0 +1,14 @@
+{
+  "name": "Tripura University Campus Map",
+  "short_name": "TU Campus Map",
+  "description": "Interactive, offline-friendly campus navigation for Tripura University.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#10233A",
+  "theme_color": "#10233A",
+  "orientation": "any",
+  "icons": [
+    { "src": "assets/icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
