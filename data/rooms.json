@@ -1,0 +1,49 @@
+{
+  "rooms": [
+    { "id": 5001, "building": 104, "floor": 0, "room": "G-01", "name": "CSE Department Office", "type": "Office", "capacity": 6, "department": "Computer Science & Engineering", "facilities": ["Reception", "Notice Board"], "nearby": ["G-02", "G-03"] },
+    { "id": 5002, "building": 104, "floor": 0, "room": "G-02", "name": "Networking Lab", "type": "Laboratory", "capacity": 40, "department": "Computer Science & Engineering", "facilities": ["Router Racks", "40 Workstations", "Projector"], "nearby": ["G-01", "G-03"] },
+    { "id": 5003, "building": 104, "floor": 1, "room": "F-101", "name": "Smart Classroom 1", "type": "Smart Classroom", "capacity": 70, "department": "Computer Science & Engineering", "facilities": ["Interactive Board", "AC", "Projector"], "nearby": ["F-102"] },
+    { "id": 5004, "building": 104, "floor": 1, "room": "F-102", "name": "AI & Data Science Lab", "type": "Laboratory", "capacity": 35, "department": "Computer Science & Engineering", "facilities": ["GPU Workstations", "Projector"], "nearby": ["F-101", "F-103"] },
+    { "id": 5005, "building": 104, "floor": 1, "room": "F-103", "name": "Faculty Room - CSE", "type": "Faculty Room", "capacity": 12, "department": "Computer Science & Engineering", "facilities": ["Cabins", "Meeting Table"], "nearby": ["F-102"] },
+    { "id": 5006, "building": 104, "floor": 2, "room": "S-201", "name": "Electronics Lab", "type": "Laboratory", "capacity": 30, "department": "Electronics & Communication Engineering", "facilities": ["Oscilloscopes", "Signal Generators"], "nearby": ["S-202"] },
+    { "id": 5007, "building": 104, "floor": 2, "room": "S-202", "name": "VLSI Design Lab", "type": "Laboratory", "capacity": 25, "department": "Electronics & Communication Engineering", "facilities": ["CAD Workstations"], "nearby": ["S-201", "S-203"] },
+    { "id": 5008, "building": 104, "floor": 2, "room": "S-203", "name": "Seminar Hall - ECE", "type": "Seminar Hall", "capacity": 80, "department": "Electronics & Communication Engineering", "facilities": ["Podium", "AV System"], "nearby": ["S-202"] },
+    { "id": 5009, "building": 104, "floor": 3, "room": "T-301", "name": "Innovation & Incubation Cell", "type": "Meeting Room", "capacity": 20, "department": "Computer Science & Engineering", "facilities": ["Whiteboard Wall", "Wi-Fi"], "nearby": [] },
+
+    { "id": 5101, "building": 101, "floor": 0, "room": "G-01", "name": "English Department Office", "type": "Office", "capacity": 5, "department": "Department of English", "facilities": ["Reception"], "nearby": ["G-02"] },
+    { "id": 5102, "building": 101, "floor": 0, "room": "G-02", "name": "Language Resource Centre", "type": "Lab", "capacity": 30, "department": "Department of English", "facilities": ["Audio Booths", "Computers"], "nearby": ["G-01"] },
+    { "id": 5103, "building": 101, "floor": 1, "room": "F-101", "name": "Classroom 1", "type": "Classroom", "capacity": 60, "department": "Department of English", "facilities": ["Projector"], "nearby": ["F-102"] },
+    { "id": 5104, "building": 101, "floor": 1, "room": "F-102", "name": "Economics Seminar Room", "type": "Seminar Hall", "capacity": 50, "department": "Department of Economics", "facilities": ["Projector", "AC"], "nearby": ["F-101"] },
+    { "id": 5105, "building": 101, "floor": 2, "room": "S-201", "name": "Faculty Room - Humanities", "type": "Faculty Room", "capacity": 15, "department": "Department of English", "facilities": ["Cabins"], "nearby": [] },
+
+    { "id": 5201, "building": 102, "floor": 0, "room": "G-01", "name": "Commerce Reception", "type": "Office", "capacity": 4, "department": "Department of Commerce", "facilities": ["Reception"], "nearby": [] },
+    { "id": 5202, "building": 102, "floor": 1, "room": "F-101", "name": "Finance Lab", "type": "Laboratory", "capacity": 40, "department": "Department of Commerce", "facilities": ["Bloomberg Terminal", "Computers"], "nearby": ["F-102"] },
+    { "id": 5203, "building": 102, "floor": 1, "room": "F-102", "name": "Case Study Room", "type": "Classroom", "capacity": 45, "department": "School of Management Studies", "facilities": ["Round Table Seating", "Projector"], "nearby": ["F-101"] },
+    { "id": 5204, "building": 102, "floor": 2, "room": "S-201", "name": "Management Classroom A", "type": "Classroom", "capacity": 60, "department": "School of Management Studies", "facilities": ["Projector", "AC"], "nearby": ["S-202"] },
+    { "id": 5205, "building": 102, "floor": 3, "room": "T-301", "name": "MBA Faculty Room", "type": "Faculty Room", "capacity": 10, "department": "School of Management Studies", "facilities": ["Cabins"], "nearby": [] },
+
+    { "id": 5301, "building": 103, "floor": 0, "room": "G-01", "name": "Circulation Desk", "type": "Office", "capacity": 6, "department": "Library", "facilities": ["Issue Counter", "Catalogue Terminals"], "nearby": ["G-02"] },
+    { "id": 5302, "building": 103, "floor": 0, "room": "G-02", "name": "Reading Hall A", "type": "Reading Room", "capacity": 120, "department": "Library", "facilities": ["Silent Zone", "Wi-Fi"], "nearby": ["G-01"] },
+    { "id": 5303, "building": 103, "floor": 1, "room": "F-101", "name": "Digital Archive Room", "type": "Lab", "capacity": 25, "department": "Library", "facilities": ["Scanners", "Computers"], "nearby": [] },
+    { "id": 5304, "building": 103, "floor": 2, "room": "S-201", "name": "Rare Books Section", "type": "Reading Room", "capacity": 20, "department": "Library", "facilities": ["Climate Controlled"], "nearby": [] },
+
+    { "id": 5401, "building": 105, "floor": 0, "room": "G-01", "name": "Physics Lab I", "type": "Laboratory", "capacity": 30, "department": "Department of Physics", "facilities": ["Optics Bench", "Lasers"], "nearby": ["G-02"] },
+    { "id": 5402, "building": 105, "floor": 0, "room": "G-02", "name": "Science Museum", "type": "Exhibit Hall", "capacity": 50, "department": "Department of Physics", "facilities": ["Interactive Exhibits"], "nearby": ["G-01"] },
+    { "id": 5403, "building": 105, "floor": 1, "room": "F-101", "name": "Chemistry Wet Lab", "type": "Laboratory", "capacity": 28, "department": "Department of Chemistry", "facilities": ["Fume Hoods", "Safety Showers"], "nearby": [] },
+    { "id": 5404, "building": 105, "floor": 2, "room": "S-201", "name": "Instrumentation Room", "type": "Laboratory", "capacity": 15, "department": "Department of Chemistry", "facilities": ["Spectrometers"], "nearby": [] },
+
+    { "id": 5501, "building": 106, "floor": 0, "room": "G-01", "name": "Statistics Computing Lab", "type": "Laboratory", "capacity": 30, "department": "Department of Mathematics", "facilities": ["Computers", "R & Python Setup"], "nearby": [] },
+    { "id": 5502, "building": 106, "floor": 1, "room": "F-101", "name": "Classroom - Mathematics", "type": "Classroom", "capacity": 55, "department": "Department of Mathematics", "facilities": ["Projector"], "nearby": [] },
+
+    { "id": 5601, "building": 107, "floor": 0, "room": "G-01", "name": "Moot Court Hall", "type": "Seminar Hall", "capacity": 90, "department": "Department of Law", "facilities": ["Judge's Bench", "AV System"], "nearby": [] },
+    { "id": 5602, "building": 107, "floor": 1, "room": "F-101", "name": "Legal Aid Clinic", "type": "Office", "capacity": 10, "department": "Department of Law", "facilities": ["Consultation Desks"], "nearby": [] },
+
+    { "id": 5701, "building": 108, "floor": 0, "room": "G-01", "name": "Registrar's Office", "type": "Office", "capacity": 8, "department": "Administration", "facilities": ["Reception"], "nearby": ["G-02"] },
+    { "id": 5702, "building": 108, "floor": 0, "room": "G-02", "name": "Student Help Desk", "type": "Help Desk", "capacity": 4, "department": "Administration", "facilities": ["Enquiry Counter"], "nearby": ["G-01"] },
+    { "id": 5703, "building": 108, "floor": 1, "room": "F-101", "name": "Vice-Chancellor's Office", "type": "Office", "capacity": 6, "department": "Administration", "facilities": ["Waiting Lounge"], "nearby": [] },
+    { "id": 5704, "building": 108, "floor": 1, "room": "F-102", "name": "Finance Office", "type": "Office", "capacity": 10, "department": "Administration", "facilities": ["Cash Counter"], "nearby": [] },
+
+    { "id": 5801, "building": 114, "floor": 0, "room": "G-01", "name": "Main Auditorium", "type": "Auditorium", "capacity": 1000, "department": "Administration", "facilities": ["Stage", "AV System", "Green Room"], "nearby": [] },
+    { "id": 5802, "building": 114, "floor": 1, "room": "F-101", "name": "Conference Hall", "type": "Conference Hall", "capacity": 150, "department": "Administration", "facilities": ["Podium", "Video Conferencing"], "nearby": [] }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Campus Ring Road", "roadType": "main", "category": "roads" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.2600, 23.7580], [91.2600, 23.7650], [91.2715, 23.7650],
+          [91.2715, 23.7580], [91.2600, 23.7580]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Academic Avenue", "roadType": "internal", "category": "roads" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[91.2610, 23.7605], [91.2650, 23.7610], [91.2690, 23.7615], [91.2705, 23.7618]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Hostel Link Road", "roadType": "internal", "category": "roads" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[91.2650, 23.7610], [91.2650, 23.7640], [91.2701, 23.7635]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Admin Road", "roadType": "internal", "category": "roads" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[91.2650, 23.7595], [91.2650, 23.7589], [91.2648, 23.7589]]
+      }
+    }
+  ]
+}

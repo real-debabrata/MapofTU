@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Main Gate Security Booth", "type": "security", "category": "emergency", "contact": "+91-381-2374100" },
+      "geometry": { "type": "Point", "coordinates": [91.2649, 23.7582] } },
+    { "type": "Feature", "properties": { "name": "North Gate Security Booth", "type": "security", "category": "emergency", "contact": "+91-381-2374101" },
+      "geometry": { "type": "Point", "coordinates": [91.2650, 23.7647] } },
+    { "type": "Feature", "properties": { "name": "East Gate Security Booth", "type": "security", "category": "emergency", "contact": "+91-381-2374102" },
+      "geometry": { "type": "Point", "coordinates": [91.2713, 23.7618] } },
+    { "type": "Feature", "properties": { "name": "University Health Centre", "type": "medical", "category": "emergency", "contact": "+91-381-2374111" },
+      "geometry": { "type": "Point", "coordinates": [91.2628, 23.7608] } },
+    { "type": "Feature", "properties": { "name": "Fire Assembly Point - Central Lawn", "type": "assembly", "category": "emergency", "contact": "" },
+      "geometry": { "type": "Point", "coordinates": [91.2655, 23.7612] } }
+  ]
+}

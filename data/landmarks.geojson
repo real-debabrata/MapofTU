@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Main Gate", "type": "gate", "category": "landmarks", "description": "Primary entrance to the university on NH-08." },
+      "geometry": { "type": "Point", "coordinates": [91.2650, 23.7581] } },
+    { "type": "Feature", "properties": { "name": "North Gate", "type": "gate", "category": "landmarks", "description": "Secondary gate used mainly by hostel residents." },
+      "geometry": { "type": "Point", "coordinates": [91.2650, 23.7648] } },
+    { "type": "Feature", "properties": { "name": "East Gate", "type": "gate", "category": "landmarks", "description": "Secondary gate near the engineering block." },
+      "geometry": { "type": "Point", "coordinates": [91.2715, 23.7618] } },
+    { "type": "Feature", "properties": { "name": "University Bus Stop", "type": "busstop", "category": "landmarks", "description": "Pickup and drop-off point for the campus shuttle and city buses." },
+      "geometry": { "type": "Point", "coordinates": [91.2647, 23.7584] } },
+    { "type": "Feature", "properties": { "name": "Shanti Bagan Garden", "type": "garden", "category": "landmarks", "description": "A landscaped garden popular for quiet study and relaxation." },
+      "geometry": { "type": "Point", "coordinates": [91.2660, 23.7600] } },
+    { "type": "Feature", "properties": { "name": "Central Avenue Trees", "type": "tree", "category": "landmarks", "description": "A row of century-old rain trees lining the central spine." },
+      "geometry": { "type": "Point", "coordinates": [91.2650, 23.7615] } },
+    { "type": "Feature", "properties": { "name": "University Temple", "type": "temple", "category": "landmarks", "description": "A small temple open to all students and staff." },
+      "geometry": { "type": "Point", "coordinates": [91.2680, 23.7605] } },
+    { "type": "Feature", "properties": { "name": "State Bank Campus Branch", "type": "bank", "category": "landmarks", "description": "On-campus bank branch with locker facilities." },
+      "geometry": { "type": "Point", "coordinates": [91.2658, 23.7601] } },
+    { "type": "Feature", "properties": { "name": "Campus ATM", "type": "atm", "category": "landmarks", "description": "24-hour ATM kiosk near the bank branch." },
+      "geometry": { "type": "Point", "coordinates": [91.2659, 23.7602] } },
+    { "type": "Feature", "properties": { "name": "Cycle Stand - Central", "type": "cyclestand", "category": "landmarks", "description": "Covered cycle parking near the central library." },
+      "geometry": { "type": "Point", "coordinates": [91.2645, 23.7604] } }
+  ]
+}

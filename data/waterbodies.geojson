@@ -1,0 +1,7 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Rudrasagar Pond", "type": "waterbody", "category": "waterbodies", "description": "An ornamental pond near the central garden, home to migratory birds in winter." },
+      "geometry": { "type": "Polygon", "coordinates": [[[91.2656,23.7597],[91.2656,23.7602],[91.2664,23.7602],[91.2664,23.7597],[91.2656,23.7597]]] } }
+  ]
+}

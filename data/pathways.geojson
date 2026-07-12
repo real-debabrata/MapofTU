@@ -1,0 +1,55 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Central Spine (East-West)", "pathType": "walkway", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2610,23.7605],[91.2630,23.7608],[91.2650,23.7610],[91.2670,23.7613],[91.2690,23.7615],[91.2705,23.7618]] } },
+
+    { "type": "Feature", "properties": { "name": "Central Spine (North-South)", "pathType": "walkway", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7589],[91.2650,23.7595],[91.2650,23.7610],[91.2650,23.7625],[91.2650,23.7640]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Faculty of Arts", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7610],[91.2649,23.7614]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to School of Management", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7610],[91.2661,23.7607]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Central Library", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7595],[91.2643,23.7601]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Faculty of Engineering", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2670,23.7613],[91.2672,23.7621]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Faculty of Science", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2690,23.7615],[91.2687,23.7599]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Mathematics Dept", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7625],[91.2634,23.7625]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Law Dept", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2610,23.7605],[91.2618,23.7595]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Administrative Bldg", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7595],[91.2655,23.7591]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Boys Hostel", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2705,23.7618],[91.2701,23.7635]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Girls Hostel", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7640],[91.2612,23.7638]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Canteen", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2670,23.7613],[91.2666,23.7616]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Sports Complex", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2705,23.7618],[91.2691,23.7645]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Health Centre", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2630,23.7608],[91.2628,23.7608]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Auditorium", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7589],[91.2648,23.7589]] } },
+
+    { "type": "Feature", "properties": { "name": "Path to Main Gate", "pathType": "footpath", "category": "pathways" },
+      "geometry": { "type": "LineString", "coordinates": [[91.2650,23.7589],[91.2650,23.7581]] } }
+  ]
+}
