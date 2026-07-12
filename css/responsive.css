@@ -1,0 +1,57 @@
+/* =====================================================================
+   RESPONSIVE LAYOUT RULES
+   Breakpoints: >1024 desktop (default in style.css), 768-1024 tablet,
+   <768 mobile. Mobile turns the sidebar and drawer into bottom sheets
+   so everything stays reachable with a thumb.
+   ===================================================================== */
+
+/* ---------- Tablet ---------------------------------------------------- */
+@media (max-width: 1024px) {
+  .sidebar { width: 270px; }
+  .drawer { width: 380px; }
+  .route-panel { width: min(94vw, 420px); }
+}
+
+/* ---------- Mobile ------------------------------------------------------ */
+@media (max-width: 720px) {
+  .topbar { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+  .brand__subtitle { display: none; }
+  .search-float { order: 3; flex-basis: 100%; max-width: none; }
+
+  /* Sidebar becomes a bottom sheet */
+  .sidebar {
+    left: 8px; right: 8px; width: auto; max-width: none;
+    top: auto; bottom: 84px; max-height: 50vh;
+    transform: translateY(120%);
+    border-radius: var(--r-lg);
+  }
+  .sidebar.open { transform: translateY(0); }
+
+  /* Drawer becomes a full-width bottom sheet, swipeable up */
+  .drawer {
+    width: 100%; left: 0; right: 0; top: auto; bottom: 0;
+    height: 82vh; border-radius: var(--r-lg) var(--r-lg) 0 0;
+    transform: translateY(100%);
+  }
+  .drawer.open { transform: translateY(0); }
+  .drawer__hero { height: 140px; }
+
+  .map-controls { bottom: 96px; right: 12px; }
+  .fab { right: 12px; bottom: 20px; width: 52px; height: 52px; }
+  .recenter-btn { top: 74px; }
+
+  .info-grid { grid-template-columns: 1fr; }
+  .route-panel { top: 74px; width: calc(100vw - 24px); }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .brand__title { font-size: 13px; }
+  .search-box input { font-size: 13.5px; }
+}
+
+/* Landscape phones: keep the drawer usable without eating the whole screen */
+@media (max-height: 480px) and (orientation: landscape) {
+  .drawer { height: 100vh; }
+  .sidebar { max-height: 80vh; }
+}
