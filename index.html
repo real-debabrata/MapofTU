@@ -7,6 +7,8 @@
 <meta name="description" content="An open-source, interactive campus navigation platform for Tripura University: search buildings and rooms, filter by category, and find walking routes across campus.">
 <meta name="theme-color" content="#10233A">
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
 
 <!-- Leaflet (open-source mapping library) -->
@@ -98,14 +100,20 @@
     </div>
   </aside>
 
-  <!-- ============ Map controls: zoom, compass ============ -->
+  <!-- ============ Map controls: zoom, compass, 3D ============ -->
   <div class="map-controls">
     <div class="zoom-stack">
       <button id="zoom-in" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
       <button id="zoom-out" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
     </div>
-    <div class="compass-rose" id="compass" aria-label="Reset view to campus center" role="button" tabindex="0">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 2 3 8-3-1.5L9 10Z" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/></svg>
+    <button class="icon-btn tilt-toggle-btn" id="tilt-toggle" aria-label="Toggle 3D view" title="Toggle 3D view">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7Z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+    </button>
+    <div class="compass-rose" id="compass" aria-label="Drag to rotate the map, tap to face north, double-tap for auto-rotate" role="button" tabindex="0" title="Drag to rotate · tap for north · double-tap to auto-rotate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <g class="compass-rose__needle"><path d="m12 2 3 8-3-1.5L9 10Z" fill="currentColor" stroke="none"/></g>
+        <circle cx="12" cy="12" r="9"/>
+      </svg>
     </div>
   </div>
 
@@ -140,6 +148,7 @@
 
   <!-- ============ Information drawer ============ -->
   <section class="drawer" id="info-drawer" aria-label="Building details">
+    <button class="drawer__handle" id="drawer-handle" aria-label="Expand or collapse details panel"></button>
     <div class="drawer__hero">
       <div class="drawer__hero-overlay">
         <div class="drawer__eyebrow">BUILDING</div>
