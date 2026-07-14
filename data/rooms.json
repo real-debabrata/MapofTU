@@ -44,6 +44,21 @@
     { "id": 5704, "building": 108, "floor": 1, "room": "F-102", "name": "Finance Office", "type": "Office", "capacity": 10, "department": "Administration", "facilities": ["Cash Counter"], "nearby": [] },
 
     { "id": 5801, "building": 114, "floor": 0, "room": "G-01", "name": "Main Auditorium", "type": "Auditorium", "capacity": 1000, "department": "Administration", "facilities": ["Stage", "AV System", "Green Room"], "nearby": [] },
-    { "id": 5802, "building": 114, "floor": 1, "room": "F-101", "name": "Conference Hall", "type": "Conference Hall", "capacity": 150, "department": "Administration", "facilities": ["Podium", "Video Conferencing"], "nearby": [] }
+    { "id": 5802, "building": 114, "floor": 1, "room": "F-101", "name": "Conference Hall", "type": "Conference Hall", "capacity": 150, "department": "Administration", "facilities": ["Podium", "Video Conferencing"], "nearby": [] },
+
+    {
+  "id": 1201,
+  "building": 120,
+  "floor": 2,
+  "room": "L-1",
+  "name": "Commerce Lecture Room- 1",
+  "type": "Classroom",
+  "capacity": 60,
+  "department": "Department of Commerce ",
+  "facilities": [
+    "Double Black Board"
+  ],
+  "nearby": []
+    }
   ]
 }
