@@ -500,7 +500,7 @@
       btnReset: document.getElementById('btn-reset')
     };
 
-    // Helper: Build and render Building structural schema
+    // Helper: Build and render Building structural schema (Multi-line)
     function compileBuildingJSON() {
       const lng = el.bLongitude.value ? parseFloat(el.bLongitude.value) : 0;
       const lat = el.bLatitude.value ? parseFloat(el.bLatitude.value) : 0;
@@ -531,7 +531,7 @@
       return JSON.stringify(schema, null, 2);
     }
 
-    // Helper: Build and render Room schema
+    // Helper: Build and render Room schema (Single-line only format)
     function compileRoomJSON() {
       const schema = {
         id: el.rId.value ? parseInt(el.rId.value, 10) : null,
@@ -546,7 +546,7 @@
         nearby: state.room.nearby
       };
 
-      return JSON.stringify(schema, null, 2);
+      return JSON.stringify(schema);
     }
 
     // Trigger Output Regeneration and calculations
@@ -559,7 +559,7 @@
         el.schemaContextInfo.textContent = "Appends inside the buildings.json array.";
       } else {
         jsonString = compileRoomJSON();
-        el.outputSchemaTitle.textContent = "Room JSON Preview";
+        el.outputSchemaTitle.textContent = "Room JSON Preview (Single-Line)";
         el.schemaContextInfo.textContent = "Appends inside the rooms.json array.";
       }
 
