@@ -28,8 +28,6 @@
       });
 
       CampusUI.init(map);
-
-      registerServiceWorker();
     } catch (err) {
       console.error('Failed to start Tripura University campus map:', err);
       document.getElementById('loading-label').textContent =
@@ -39,16 +37,6 @@
 
     splash.classList.add('hide');
     setTimeout(() => splash.remove(), 500);
-  }
-
-  /** Registers the service worker for offline caching (PWA requirement).
-   *  Silently no-ops on file:// or unsupported browsers. */
-  function registerServiceWorker() {
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {
-        /* offline caching is a progressive enhancement, not required */
-      });
-    }
   }
 
   document.addEventListener('DOMContentLoaded', boot);
