@@ -3,7 +3,7 @@
     { "id": "dept-cse", "name": "Computer Science & Engineering", "buildingId": 104, "hod": "Prof. A. Debbarma", "contact": "cse@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-ece", "name": "Electronics & Communication Engineering", "buildingId": 104, "hod": "Prof. R. Nath", "contact": "ece@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-eng", "name": "Department of English", "buildingId": 101, "hod": "Prof. S. Bhattacharjee", "contact": "english@tripurauniv.ac.in", "category": "academic" },
-    { "id": "dept-com", "name": "Department of Commerce", "buildingId": 102, "hod": "Prof. M. Roy", "contact": "commerce@tripurauniv.ac.in", "category": "academic" },
+    { "id": "dept-com", "name": "Department of Commerce", "buildingId": 120, "hod": "Prof. C. Roy", "contact": "commerce@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-phy", "name": "Department of Physics", "buildingId": 105, "hod": "Prof. K. Jamatia", "contact": "physics@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-chem", "name": "Department of Chemistry", "buildingId": 105, "hod": "Prof. T. Reang", "contact": "chemistry@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-math", "name": "Department of Mathematics", "buildingId": 106, "hod": "Prof. B. Chakma", "contact": "math@tripurauniv.ac.in", "category": "academic" },
