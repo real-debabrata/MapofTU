@@ -9,6 +9,14 @@ React, no build step, no server.
 > Tripura's own lake palace, built specifically for this campus rather than
 > reused from a generic template. See [Design system](#design-system) below.
 
+> **Data-entry tool:** adding buildings/rooms by hand-editing JSON is
+> error-prone, so `/JsonGeneration` is a small in-browser form that builds a
+> schema-correct `buildings.json`/`rooms.json` entry for you and lets you
+> copy or download the result. Live at
+> **[tumap.nx.kg/JsonGeneration](https://www.tumap.nx.kg/JsonGeneration)**.
+> See [Editing the data](#editing-the-data-no-code-required) below for how
+> the generated JSON plugs into `/data`.
+
 ---
 
 ## Table of contents
@@ -22,13 +30,15 @@ React, no build step, no server.
    - [Update roads & pathways](#update-roads--pathways)
    - [Replace images](#replace-images)
 5. [How search & routing work](#how-search--routing-work)
-6. [Design system](#design-system)
-7. [Accessibility](#accessibility)
-8. [Performance notes](#performance-notes)
-9. [Security notes](#security-notes)
-10. [Roadmap / future extensions](#roadmap--future-extensions)
-11. [Contributing](#contributing)
-12. [License](#license)
+6. [Map gestures: pan, zoom, rotate & tilt](#map-gestures-pan-zoom-rotate--tilt)
+7. [Design system](#design-system)
+8. [Accessibility](#accessibility)
+9. [Performance notes](#performance-notes)
+10. [Security notes](#security-notes)
+11. [Recent fixes (site outage / offline reliability)](#recent-fixes-site-outage--offline-reliability)
+12. [Roadmap / future extensions](#roadmap--future-extensions)
+13. [Contributing](#contributing)
+14. [License](#license)
 
 ---
 
@@ -77,7 +87,10 @@ Vercel's static hosting, or any plain web server.
 project/
 ├── index.html            # App shell: markup for every UI region
 ├── manifest.json         # PWA manifest (installable app)
-├── service-worker.js     # Offline cache for the app shell + data
+├── service-worker.js     # Offline cache for the app shell + data + Leaflet
+├── vendor/
+│   └── leaflet/          # Leaflet 1.9.4, vendored locally (not a CDN — see
+│                          # "Recent fixes" below for why)
 ├── css/
 │   ├── style.css         # Design tokens + all component styles
 │   ├── dark.css          # Dark theme token overrides only
@@ -127,6 +140,11 @@ naming collisions.
 Nothing is hardcoded. Every building, room, road, and icon on the map comes
 from the files in `/data`. To change what's on the map, edit those files and
 refresh the page — no JavaScript changes needed.
+
+> Prefer a form over hand-editing JSON? Use the
+> **[JSON Generator](https://www.tumap.nx.kg/JsonGeneration)**
+> (`/JsonGeneration` in this repo) — fill in a building or room, and copy the
+> correctly-shaped JSON it produces straight into `buildings.json`/`rooms.json`.
 
 ### Add a new building
 
@@ -245,7 +263,34 @@ a real photo:
 
 ---
 
-## Design system
+## Map gestures: pan, zoom, rotate & tilt
+
+| Gesture | Effect |
+|---|---|
+| One finger drag / mouse drag | Pan the map |
+| Pinch (two fingers) | Zoom, exactly as Leaflet normally handles it |
+| **Twist two fingers around each other, anywhere on the map** | **Rotate the map to face any heading** — not just North, any angle in between, live as you twist |
+| **Drag two fingers up/down together, anywhere on the map** | **Tilt into/out of the 3D perspective view**, continuously from flat to fully tilted |
+| Drag the compass dial (bottom-right) | Same rotate, with one finger/mouse, for people who prefer a fixed control |
+| Tap the compass dial | Snap back to North-up and recenter on campus |
+| Double-tap the compass dial | Toggle a slow continuous auto-rotate (tap again to stop) |
+| Tilt button (the cube icon) | Toggle 3D tilt on/off in one tap |
+
+The two-finger gesture lives in `initTwoFingerRotateAndTilt()` in `js/ui.js`
+and talks to `CampusMap.setRotation()` / `CampusMap.setTilt()` in `js/map.js`
+— the same functions the compass dial and tilt button already used, so all
+four input methods (touch-twist, touch-drag, compass, button) always agree
+on the current heading/tilt and stay in sync with each other and with the
+compass needle's own rotation.
+
+Because rotate/tilt are implemented as a CSS transform on the map container
+(Leaflet itself only understands a flat, unrotated map), Leaflet's own
+one-finger pan is disabled while the view is rotated or tilted, to stop
+dragging from drifting in the wrong direction — it re-enables automatically
+the moment the view is back to flat/North-up. Pinch-to-zoom is unaffected at
+any rotation/tilt, since zoom never touches the CSS transform.
+
+---
 
 Rather than default to a generic "AI dashboard" look, the interface takes
 its palette and structure from Tripura's own visual vocabulary:
@@ -313,6 +358,48 @@ its palette and structure from Tripura's own visual vocabulary:
   attached with `addEventListener` in dedicated modules.
 - Strict module separation: each `.js` file owns exactly one concern and
   exposes one small `window.CampusX` namespace, keeping the code auditable.
+
+---
+
+## Recent fixes (site outage / offline reliability)
+
+The live site (`tumap.nx.kg`) was showing **"Something went wrong loading
+the campus data. Please refresh."** on some visits — worst on slow/patchy
+mobile connections. That message comes from a catch-all in `js/app.js`
+(intentionally vague to the visitor, but it hides *any* startup error).
+Investigating turned up a few real problems, now fixed:
+
+1. **Leaflet was loaded from `unpkg.com` with a Subresource Integrity
+   hash.** On a slow, filtered, or carrier-proxy'd connection (common on
+   mobile data), a script can arrive corrupted or get blocked entirely —
+   and a strict SRI hash makes the *browser* refuse to run it, with no
+   error visible to the visitor. The whole app depends on the global `L`
+   object Leaflet defines, so this alone was enough to take the entire
+   map down while looking like a generic "data" failure.
+   **Fix:** Leaflet 1.9.4 is now vendored directly in `vendor/leaflet/`
+   and served from the same origin — no external CDN, no SRI risk, and
+   it now works over restricted/proxy-heavy networks too.
+2. **`service-worker.js` existed but was never registered.** The file
+   implements a full offline cache for the app shell + `/data`, matching
+   `manifest.json`'s PWA setup, but nothing in `index.html` ever called
+   `navigator.serviceWorker.register(...)` — so it was dead code and the
+   site had no actual offline/flaky-network resilience despite looking
+   like a PWA. **Fix:** registered on load in `index.html`; the precache
+   list now also includes the vendored Leaflet files, and precaching
+   uses `Promise.allSettled` per file instead of `cache.addAll` (which
+   is all-or-nothing — one slow file used to abort caching everything).
+3. **`CNAME` was set to `www.tumap.nx.kg`**, while the site is actually
+   being accessed at the bare apex `tumap.nx.kg` (as in the screenshot
+   used to diagnose this). GitHub Pages serves strictly by the domain
+   listed in `CNAME`; a mismatch here is a classic cause of an
+   inconsistent, partially-working custom domain. **Fix:** `CNAME` now
+   reads `tumap.nx.kg` to match. If you'd rather the canonical host be
+   `www.tumap.nx.kg`, change `CNAME` back and make sure your DNS records
+   for the apex actually redirect to the `www` host.
+4. **No retry path.** Even with the above fixed, any future startup error
+   left people stuck on static text with no way forward but manually
+   reloading. **Fix:** the loading screen now shows a **Retry** button
+   on failure, and the message itself is a little more actionable.
 
 ---
 
