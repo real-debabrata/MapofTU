@@ -14,7 +14,7 @@
     { "type": "Feature", "properties": { "name": "Central Avenue Trees", "type": "tree", "category": "landmarks", "description": "A row of century-old rain trees lining the central spine." },
       "geometry": { "type": "Point", "coordinates": [91.2650, 23.7615] } },
     { "type": "Feature", "properties": { "name": "University Temple", "type": "temple", "category": "landmarks", "description": "A small temple open to all students and staff." },
-      "geometry": { "type": "Point", "coordinates": [] } },
+      "geometry": { "type": "Point", "coordinates": [91.2663, 23.7598] } },
     { "type": "Feature", "properties": { "name": "State Bank Campus Branch", "type": "bank", "category": "landmarks", "description": "On-campus bank branch with locker facilities." },
       "geometry": { "type": "Point", "coordinates": [91.2658, 23.7601] } },
     { "type": "Feature", "properties": { "name": "Campus ATM", "type": "atm", "category": "landmarks", "description": "24-hour ATM kiosk near the bank branch." },
