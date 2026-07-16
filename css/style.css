@@ -101,8 +101,12 @@ a { color: inherit; }
 .skip-link:focus { left: 0; }
 
 /* ---------- App shell ------------------------------------------------- */
-#app-shell { position: relative; width: 100%; height: 100vh; height: 100dvh; }
-#map-canvas { position: absolute; inset: 0; background: var(--bg-canvas); }
+#app-shell { position: relative; width: 100%; height: 100vh; height: 100dvh; perspective: 1400px; }
+#map-canvas {
+  position: absolute; inset: 0; background: var(--bg-canvas);
+  transition: transform var(--dur-slow) var(--ease-standard);
+  transform-style: preserve-3d;
+}
 .leaflet-container { background: var(--bg-canvas); font-family: var(--font-body); }
 
 /* Signature motif: a thin diamond-tick rule, echoing handloom pachra
@@ -295,6 +299,8 @@ a { color: inherit; }
   transition: transform var(--dur-med) var(--ease-standard);
 }
 .compass-rose svg { width: 22px; height: 22px; color: var(--gold-neermahal); }
+.compass-rose.auto-rotating svg { animation: spin 6s linear infinite; }
+.tilt-toggle-btn.active { background: var(--teal-monsoon); color: #fff; }
 
 /* ---------- Floating Action Button -------------------------------------- */
 .fab {
@@ -321,21 +327,41 @@ a { color: inherit; }
 .recenter-btn.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
 /* ---------- Information drawer (building / room details) ---------------- */
+/* Opens compact by default — roughly a third of the screen — so it never
+   covers the whole map. ".expanded" (via the Show more button or the
+   drag handle) grows it to a tall reading view; it's never forced to
+   full-screen automatically. */
 .drawer {
-  position: absolute; top: 0; right: 0; bottom: 0; z-index: 1000;
+  position: absolute; right: 0; left: auto; top: auto; bottom: 0; z-index: 1000;
   width: 420px; max-width: 100vw;
+  height: 36vh; max-height: 36vh; min-height: 260px;
   background: var(--bg-surface);
   box-shadow: var(--shadow-lg);
-  transform: translateX(100%);
-  transition: transform var(--dur-slow) var(--ease-emphasized);
+  border-radius: var(--r-lg) 0 0 0;
+  transform: translateY(100%);
+  transition: transform var(--dur-slow) var(--ease-emphasized),
+              height var(--dur-med) var(--ease-standard),
+              max-height var(--dur-med) var(--ease-standard);
   display: flex; flex-direction: column;
+  overflow: hidden;
 }
-.drawer.open { transform: translateX(0); }
+.drawer.open { transform: translateY(0); }
+.drawer.expanded { height: 86vh; max-height: 86vh; }
+.drawer__handle {
+  width: 44px; height: 5px; border-radius: var(--r-pill); flex-shrink: 0;
+  background: var(--border-subtle); border: none; cursor: pointer;
+  margin: 8px auto 0; padding: 0;
+}
+.drawer__handle:hover { background: var(--text-muted); }
 .drawer__hero {
   position: relative; height: 190px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--navy-ink), var(--teal-monsoon-d));
   overflow: hidden;
+  transition: height var(--dur-med) var(--ease-standard);
 }
+.drawer:not(.expanded) .drawer__hero { height: 92px; }
+.drawer:not(.expanded) .drawer__eyebrow { display: none; }
+.drawer:not(.expanded) .drawer__title { font-size: 16px; }
 .drawer__hero img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
 .drawer__hero-overlay {
   position: absolute; inset: 0; padding: 18px;
@@ -372,6 +398,17 @@ a { color: inherit; }
 .info-tile__value { font-size: 13.5px; font-weight: 600; }
 
 .desc-block { font-size: 13.5px; line-height: 1.6; color: var(--text-primary); margin-bottom: 18px; }
+
+.drawer__expand-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin: 4px 0 6px; padding: 9px;
+  background: var(--cream-paper); border: 1px solid var(--border-subtle); border-radius: var(--r-md);
+  font-size: 12.5px; font-weight: 600; color: var(--teal-monsoon-d); cursor: pointer;
+  flex-shrink: 0;
+}
+.drawer__expand-toggle:hover { background: rgba(27,122,114,0.08); }
+.drawer__expand-toggle svg { transition: transform var(--dur-fast) var(--ease-standard); }
+.drawer.expanded .drawer__expand-toggle svg { transform: rotate(180deg); }
 
 /* Floor switcher */
 .floor-switcher { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
