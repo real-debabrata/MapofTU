@@ -1,0 +1,33 @@
+{
+  "//": "Campus outer boundary. This is the ONLY file you need to edit to move/resize the dotted campus border shown on the map. Edit the 'coordinates' ring below — each pair is [longitude, latitude], the ring must start and end with the same point, and you can add/remove/move points freely. The map reloads this file on every page load, and also uses it (together with buildings.json) to decide how far the map is allowed to pan/zoom, so keep it roughly the size of the real campus.",
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tripura University Campus Boundary",
+        "category": "boundary",
+        "style": "dotted"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [91.2585, 23.7575],
+            [91.2650, 23.7565],
+            [91.2696, 23.7570],
+            [91.2726, 23.7592],
+            [91.2733, 23.7622],
+            [91.2722, 23.7650],
+            [91.2688, 23.7666],
+            [91.2640, 23.7671],
+            [91.2600, 23.7663],
+            [91.2574, 23.7638],
+            [91.2568, 23.7602],
+            [91.2585, 23.7575]
+          ]
+        ]
+      }
+    }
+  ]
+}
