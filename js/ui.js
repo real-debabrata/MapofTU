@@ -456,12 +456,109 @@
       dom.tiltToggle.classList.toggle('active', active);
     });
 
+    // ---- Keep the compass needle + tilt button in sync with the current
+    // rotation/tilt no matter what changed it (compass drag, tilt button,
+    // or the two-finger touch gesture below).
+    const needle = dom.compass.querySelector('.compass-rose__needle');
+    document.addEventListener('campus:viewTransformChanged', (e) => {
+      const { rotationDeg, tiltDeg, maxTiltDeg } = e.detail;
+      if (needle) needle.style.transform = `rotate(${-rotationDeg}deg)`;
+      dom.tiltToggle.classList.toggle('active', tiltDeg > 0.01);
+      dom.compass.classList.toggle('is-tilted', tiltDeg > 0.01);
+      dom.compass.style.setProperty('--tilt-ratio', String(Math.min(1, tiltDeg / maxTiltDeg)));
+    });
+
+    // ---- Two-finger touch gesture on the map itself: twist to rotate
+    // (any heading, not just multiples of 90°), drag two fingers up/down
+    // together to tilt into/out of 3D. Mirrors the compass/tilt-button
+    // behavior but works anywhere on the map, with two fingers, like
+    // Google Maps. Left alone, Leaflet's own single-finger pan and
+    // pinch-to-zoom keep working exactly as before.
+    initTwoFingerRotateAndTilt(map);
+
     map.on('moveend', () => {
       const center = map.getCenter();
       const d = CampusHelpers.haversineMeters([center.lng, center.lat], [CampusMap.CAMPUS_CENTER[1], CampusMap.CAMPUS_CENTER[0]]);
       dom.recenterBtn.classList.toggle('visible', d > 900);
     });
     dom.recenterBtn.addEventListener('click', () => CampusMap.focusOn([CampusMap.CAMPUS_CENTER[1], CampusMap.CAMPUS_CENTER[0]], 16));
+  }
+
+  /** Two-finger "twist to rotate, drag to tilt" gesture directly on the
+   *  map, tracked with Pointer Events so each finger is identified by its
+   *  own pointerId (works the same as the existing single-pointer
+   *  compass-drag code above, just with two pointers at once).
+   *
+   *  - Twisting the two fingers around each other rotates the map to
+   *    face any heading (not just North/45°-snapped steps).
+   *  - Moving both fingers up/down together (without twisting much)
+   *    tilts the map into/out of the 3D view, from flat (North-up, 2D)
+   *    to fully tilted, at any angle in between.
+   *  Both gestures can blend, same as tilting a physical map in your
+   *  hands. Leaflet's own pinch-to-zoom keeps working independently,
+   *  since we only ever touch the CSS rotate/tilt transform, never
+   *  zoom or pan. */
+  function initTwoFingerRotateAndTilt(map) {
+    const el = map.getContainer();
+    const active = new Map(); // pointerId -> {x, y}
+    let gesture = null; // { startAngle, startRotation, startMidY, startTilt }
+
+    function points() { return [...active.values()]; }
+    function angleBetween(p1, p2) {
+      return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+    }
+    function midY(p1, p2) { return (p1.y + p2.y) / 2; }
+
+    function beginGesture() {
+      const [p1, p2] = points();
+      gesture = {
+        startAngle: angleBetween(p1, p2),
+        startRotation: CampusMap.getRotation(),
+        startMidY: midY(p1, p2),
+        startTilt: CampusMap.getTilt()
+      };
+      CampusMap.setGestureActive(true);
+    }
+
+    function updateGesture() {
+      if (!gesture || active.size < 2) return;
+      const [p1, p2] = points();
+
+      const angleDelta = angleBetween(p1, p2) - gesture.startAngle;
+      CampusMap.setRotation(gesture.startRotation + angleDelta);
+
+      // Dragging both fingers UP tilts the map away from you (more 3D);
+      // dragging DOWN flattens it back out — same convention as most
+      // map apps' two-finger tilt gesture.
+      const yDelta = gesture.startMidY - midY(p1, p2);
+      CampusMap.setTilt(gesture.startTilt + yDelta / 3);
+    }
+
+    function endGesture() {
+      if (!gesture) return;
+      gesture = null;
+      CampusMap.setGestureActive(false);
+    }
+
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch') return;
+      active.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (active.size === 2) beginGesture();
+      else if (active.size > 2) endGesture(); // a third finger: bail out cleanly
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!active.has(e.pointerId)) return;
+      active.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (active.size === 2) updateGesture();
+    });
+    function release(e) {
+      if (!active.has(e.pointerId)) return;
+      active.delete(e.pointerId);
+      if (active.size < 2) endGesture();
+    }
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('pointerleave', release);
   }
 
   /* ============================ WIRING =============================== */

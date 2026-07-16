@@ -31,7 +31,12 @@
     } catch (err) {
       console.error('Failed to start Tripura University campus map:', err);
       document.getElementById('loading-label').textContent =
-        'Something went wrong loading the campus data. Please refresh.';
+        'Something went wrong loading the campus map. Check your connection and try again.';
+      const retry = document.getElementById('loading-retry');
+      if (retry) {
+        retry.style.display = 'inline-flex';
+        retry.addEventListener('click', () => location.reload(), { once: true });
+      }
       return;
     }
 
