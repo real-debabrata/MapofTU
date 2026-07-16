@@ -97,6 +97,17 @@
     document.dispatchEvent(new CustomEvent(name, { detail }));
   }
 
+  /** Guards against malformed/missing coordinates in /data (e.g. an
+   *  empty `coordinates: []`). Leaflet throws a hard "Invalid LatLng
+   *  object" exception on bad input, which — unhandled — used to crash
+   *  the whole map init and take down the entire app over a single bad
+   *  point. This lets one bad entry be skipped (with a console warning)
+   *  instead of one typo in /data breaking the site for everyone. */
+  function isValidLngLat(coords) {
+    return Array.isArray(coords) && coords.length === 2 &&
+      Number.isFinite(coords[0]) && Number.isFinite(coords[1]);
+  }
+
   /** Renders a compact popup for any feature, with a "View details"
    *  button that hands off to ui.js for the full drawer experience. */
   function popupHTML(title, subtitle, ctaLabel) {
@@ -110,6 +121,10 @@
   function addBuildingsLayer() {
     const groups = {};
     data.buildings.forEach((b) => {
+      if (!isValidLngLat(b.coordinates)) {
+        console.warn('Skipping building with invalid coordinates:', b.name || b.id);
+        return;
+      }
       const style = CATEGORY_STYLE[b.category] || CATEGORY_STYLE.academic;
       const marker = L.marker([b.coordinates[1], b.coordinates[0]], {
         icon: makeDivIcon(style.color, style.icon),
@@ -151,6 +166,10 @@
   function addLandmarksLayer() {
     const group = L.layerGroup();
     data.geo.landmarks.features.forEach((f) => {
+      if (!isValidLngLat(f.geometry?.coordinates)) {
+        console.warn('Skipping landmark with invalid coordinates:', f.properties?.name);
+        return;
+      }
       const [lng, lat] = f.geometry.coordinates;
       const svg = LANDMARK_ICONS[f.properties.type] || iconStar();
       const marker = L.marker([lat, lng], { icon: makeDivIcon(CATEGORY_STYLE.landmarks.color, svg), alt: f.properties.name });
@@ -166,6 +185,10 @@
   function addEmergencyLayer() {
     const group = L.layerGroup();
     data.geo.emergency.features.forEach((f) => {
+      if (!isValidLngLat(f.geometry?.coordinates)) {
+        console.warn('Skipping emergency point with invalid coordinates:', f.properties?.name);
+        return;
+      }
       const [lng, lat] = f.geometry.coordinates;
       const marker = L.marker([lat, lng], { icon: makeDivIcon(CATEGORY_STYLE.emergency.color, iconAlert()), alt: f.properties.name });
       const subtitle = f.properties.contact ? `Contact: ${f.properties.contact}` : '';
