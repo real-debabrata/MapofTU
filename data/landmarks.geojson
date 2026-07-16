@@ -2,9 +2,9 @@
   "type": "FeatureCollection",
   "features": [
     { "type": "Feature", "properties": { "name": "Main Gate", "type": "gate", "category": "landmarks", "description": "Primary entrance to the university on NH-08." },
-      "geometry": { "type": "Point", "coordinates": [91.2650, 23.7581] } },
-    { "type": "Feature", "properties": { "name": "North Gate", "type": "gate", "category": "landmarks", "description": "Secondary gate used mainly by hostel residents." },
-      "geometry": { "type": "Point", "coordinates": [91.2650, 23.7648] } },
+      "geometry": { "type": "Point", "coordinates": [91.2671, 23.7622] } },
+    { "type": "Feature", "properties": { "name": "3rd Gate", "type": "gate", "category": "landmarks", "description": "Secondary gate used for Entry to the University by all." },
+      "geometry": { "type": "Point", "coordinates": [91.2675, 23.7611] } },
     { "type": "Feature", "properties": { "name": "East Gate", "type": "gate", "category": "landmarks", "description": "Secondary gate near the engineering block." },
       "geometry": { "type": "Point", "coordinates": [91.2715, 23.7618] } },
     { "type": "Feature", "properties": { "name": "University Bus Stop", "type": "busstop", "category": "landmarks", "description": "Pickup and drop-off point for the campus shuttle and city buses." },
