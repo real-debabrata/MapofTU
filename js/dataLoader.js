@@ -19,7 +19,8 @@
     landmarks: 'data/landmarks.geojson',
     parking: 'data/parking.geojson',
     waterbodies: 'data/waterbodies.geojson',
-    emergency: 'data/emergency.geojson'
+    emergency: 'data/emergency.geojson',
+    boundary: 'data/boundary.geojson'
   };
 
   let cache = null;
@@ -66,7 +67,8 @@
           landmarks: raw.landmarks,
           parking: raw.parking,
           waterbodies: raw.waterbodies,
-          emergency: raw.emergency
+          emergency: raw.emergency,
+          boundary: raw.boundary
         }
       };
       return cache;
