@@ -71,7 +71,7 @@
       "name": "Faculty of Engineering & Technology",
       "buildingNumber": "B-04",
       "category": "academic",
-      "coordinates": [91.2672, 23.7621],
+      "coordinates": [91.2622, 23.7617],
       "floors": 4,
       "departments": ["Computer Science & Engineering", "Electronics & Communication Engineering"],
       "image": "assets/images/building-engineering.svg",
