@@ -11,9 +11,13 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
 
-<!-- Leaflet (open-source mapping library) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<!-- Leaflet (open-source mapping library), vendored locally in /vendor —
+     not loaded from a CDN. A CDN + SRI script is one bad/slow/filtered
+     network hop away from silently failing to execute (no console access
+     for most visitors to even notice), which took the whole map down.
+     Shipping it with the app removes that failure point and lets the
+     service worker cache it for real offline use. -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 
 <!-- Typography: display serif + body sans + data mono -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,6 +40,7 @@
     </div>
     <div class="loading-ring"></div>
     <div class="loading-label" id="loading-label">Loading Tripura University campus map…</div>
+    <button class="btn btn-primary" id="loading-retry" style="display:none;margin-top:14px">Retry</button>
   </div>
 
   <!-- ============ Map canvas ============ -->
@@ -182,9 +187,8 @@
 
 </div>
 
-<!-- Leaflet (open-source, no API key required) -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Leaflet (open-source, no API key required, served locally — see note above) -->
+<script src="vendor/leaflet/leaflet.js"></script>
 
 <!-- App modules, loaded in dependency order (no bundler by design) -->
 <script src="js/helpers.js"></script>
@@ -195,5 +199,19 @@
 <script src="js/filters.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
+<script>
+  // Registers service-worker.js so the app shell, styles, scripts and
+  // /data are cached for offline/flaky-network use, per manifest.json's
+  // PWA setup. (The file already existed in the repo but nothing was
+  // ever calling navigator.serviceWorker.register — so it never actually
+  // ran.) Skipped gracefully on browsers without support.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch((err) => {
+        console.warn('Service worker registration failed:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>
