@@ -313,7 +313,7 @@
       "name": "Birsa Munda Bhavan",
       "buildingNumber": "02",
       "category": "academic",
-      "coordinates": [23.7614, 91.2649],
+      "coordinates": [91.2649, 23.7614],
       "floors": 3,
       "departments": [
       "Department of Commerce",
