@@ -28,6 +28,10 @@
   const layerGroups = {}; // category -> L.LayerGroup
   let markersById = {}; // "building-101" -> L.Marker, for programmatic focus
 
+  // ---- Compass rotation / 3D tilt (CSS-driven; see applyViewTransform) --
+  let rotationDeg = 0;
+  let tilted = false;
+
   /** Category → { color, svgIcon } used for markers, chips and the legend.
    *  Centralizing this means filters.js, search.js and the legend all
    *  render in sync with a single source of truth. */
@@ -199,7 +203,7 @@
     data.geo.roads.features.forEach((f) => {
       const isMain = f.properties.roadType === 'main';
       const layer = L.geoJSON(f, {
-        style: { color: '#B8B2A0', weight: isMain ? 6 : 4, opacity: 0.9, lineCap: 'round' }
+        style: { color: '#B8B2A0', weight: isMain ? 6 : 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
       });
       group.addLayer(layer);
     });
@@ -211,12 +215,64 @@
     const group = L.layerGroup();
     data.geo.pathways.features.forEach((f) => {
       const layer = L.geoJSON(f, {
-        style: { color: '#C99A3D', weight: 3, opacity: 0.55, dashArray: '1 8', lineCap: 'round' }
+        style: { color: '#C99A3D', weight: 3, opacity: 0.55, dashArray: '1 8', lineCap: 'round', lineJoin: 'round' }
       });
       group.addLayer(layer);
     });
     layerGroups.pathways = group;
     group.addTo(map);
+  }
+
+  /** Campus outer boundary — a dotted, non-interactive outline drawn from
+   *  data/boundary.geojson. Editing that file (any number of points, any
+   *  shape) is the only thing needed to change the boundary; this function
+   *  just redraws whatever is in it. Not registered as a filterable layer
+   *  since it's a fixed reference line, not a category of places. */
+  function addBoundaryLayer() {
+    const fc = data.geo.boundary;
+    if (!fc || !fc.features || !fc.features.length) return null;
+    const group = L.layerGroup();
+    fc.features.forEach((f) => {
+      const layer = L.geoJSON(f, {
+        interactive: false,
+        style: {
+          color: '#10233A',
+          weight: 2,
+          opacity: 0.55,
+          fill: false,
+          dashArray: '2 10',
+          lineCap: 'round',
+          lineJoin: 'round'
+        }
+      });
+      group.addLayer(layer);
+    });
+    layerGroups.boundary = group;
+    group.addTo(map);
+    return group;
+  }
+
+  /** Combines the boundary polygon with every building/landmark coordinate
+   *  into one LatLngBounds. Used so the initial view — and how far the
+   *  map is allowed to pan — always includes everything in /data, instead
+   *  of a hardcoded center/zoom that newly added buildings can fall
+   *  outside of. */
+  function computeContentBounds() {
+    const points = [];
+    const boundaryFC = data.geo.boundary;
+    if (boundaryFC && boundaryFC.features) {
+      boundaryFC.features.forEach((f) => {
+        const rings = f.geometry.type === 'Polygon' ? f.geometry.coordinates : [];
+        rings.forEach((ring) => ring.forEach(([lng, lat]) => points.push([lat, lng])));
+      });
+    }
+    (data.buildings || []).forEach((b) => points.push([b.coordinates[1], b.coordinates[0]]));
+    (data.geo.landmarks?.features || []).forEach((f) => {
+      const [lng, lat] = f.geometry.coordinates;
+      points.push([lat, lng]);
+    });
+    if (!points.length) return L.latLngBounds([CAMPUS_CENTER]);
+    return L.latLngBounds(points);
   }
 
   let routeLayer = null;
@@ -246,6 +302,34 @@
     map.fitBounds(L.latLngBounds(coordsLatLng), { padding: [80, 80] });
   }
 
+  /** Leaflet itself only understands a flat, unrotated 2D map, so a
+   *  "compass rotate" and "3D tilt" are done as a CSS transform on the
+   *  map's own container element — this rotates/tilts the tiles, roads,
+   *  buildings and markers together as one image, which is what most
+   *  people mean by "rotate the map". Because Leaflet's own drag/zoom
+   *  math is computed in the *untransformed* pixel space, dragging is
+   *  disabled while the view is rotated or tilted (re-enabled the moment
+   *  it's back to facing north and flat) so panning never drifts.
+   */
+  function applyViewTransform() {
+    if (!map) return;
+    const el = map.getContainer();
+    const parts = [];
+    if (rotationDeg % 360 !== 0) parts.push(`rotate(${rotationDeg}deg)`);
+    if (tilted) parts.push('rotateX(28deg) scale(1.12)');
+    el.style.transformOrigin = tilted ? '50% 70%' : '50% 50%';
+    el.style.transform = parts.join(' ');
+    const usingCssTransform = parts.length > 0;
+    if (usingCssTransform) map.dragging.disable();
+    else map.dragging.enable();
+  }
+
+  function setRotation(deg) { rotationDeg = deg; applyViewTransform(); }
+  function getRotation() { return rotationDeg; }
+  function resetView3D() { rotationDeg = 0; tilted = false; applyViewTransform(); }
+  function toggleTilt() { tilted = !tilted; applyViewTransform(); return tilted; }
+  function isTilted() { return tilted; }
+
   function focusOn(lngLat, zoom = 18) {
     map.flyTo([lngLat[1], lngLat[0]], zoom, { duration: 0.9 });
   }
@@ -266,7 +350,8 @@
       zoomControl: false, // custom zoom-stack UI instead
       attributionControl: true,
       minZoom: 14,
-      maxZoom: 20
+      maxZoom: 20,
+      maxBoundsViscosity: 0.6
     });
 
     // Muted, open basemap used only for surrounding geographic context.
@@ -276,6 +361,7 @@
       maxZoom: 20
     }).addTo(map);
 
+    addBoundaryLayer();
     addRoadsLayer();
     addPathwaysLayer();
     addWaterbodiesLayer();
@@ -283,6 +369,16 @@
     addBuildingsLayer();
     addLandmarksLayer();
     addEmergencyLayer();
+
+    // Fit the initial view — and cap how far the map can be panned — to
+    // whatever is actually in /data (boundary + buildings + landmarks)
+    // instead of a hardcoded center/zoom. This is what stops a newly
+    // added building from ending up outside the visible/pannable map:
+    // these bounds are recalculated from the live data on every load, so
+    // the map always grows to fit everything you've added to /data.
+    const contentBounds = computeContentBounds();
+    map.fitBounds(contentBounds.pad(0.12));
+    map.setMaxBounds(contentBounds.pad(0.35));
 
     map.on('moveend', () => dispatch('campus:mapMoved', { center: map.getCenter(), zoom: map.getZoom() }));
 
@@ -297,6 +393,12 @@
     focusOn,
     focusMarker,
     drawRoute,
+    computeContentBounds,
+    setRotation,
+    getRotation,
+    toggleTilt,
+    isTilted,
+    resetView3D,
     CAMPUS_CENTER
   };
 })(window);

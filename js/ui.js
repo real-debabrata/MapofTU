@@ -201,9 +201,17 @@
         <button class="btn btn-ghost" id="btn-share">Share</button>
         <button class="btn btn-ghost" id="btn-copy-coords">Copy Coordinates</button>
       </div>
+      <button class="drawer__expand-toggle" id="btn-expand-toggle" aria-expanded="false">
+        <span id="expand-toggle-label">Show more</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
     `;
+    // Every new building opens compact (~1/3 of the screen) by default —
+    // people expand it with the "Show more" button or the drag handle.
+    setDrawerExpanded(false);
     dom.drawer.classList.add('open');
     document.getElementById('drawer-tab-content').setAttribute('tabindex', '-1');
+    document.getElementById('btn-expand-toggle').addEventListener('click', toggleDrawerExpand);
 
     // Tabs
     dom.drawerBody.querySelectorAll('.tab-row button').forEach((btn) => {
@@ -259,7 +267,25 @@
     });
   }
 
-  function closeDrawer() { dom.drawer.classList.remove('open'); }
+  function closeDrawer() {
+    dom.drawer.classList.remove('open');
+    dom.drawer.classList.remove('expanded');
+  }
+
+  /** The info drawer opens compact (roughly a third of the screen) so it
+   *  never blocks the whole map; this toggles it to a taller view and
+   *  back. Bound to both the "Show more" button and the small drag
+   *  handle at the top of the drawer. */
+  function setDrawerExpanded(expanded) {
+    dom.drawer.classList.toggle('expanded', expanded);
+    const label = document.getElementById('expand-toggle-label');
+    if (label) label.textContent = expanded ? 'Show less' : 'Show more';
+    const btn = document.getElementById('btn-expand-toggle');
+    if (btn) btn.setAttribute('aria-expanded', String(expanded));
+  }
+  function toggleDrawerExpand() {
+    setDrawerExpanded(!dom.drawer.classList.contains('expanded'));
+  }
 
   /* ========================== ROUTE PANEL ============================= */
   function setRouteStart(entry) {
@@ -371,7 +397,64 @@
   function initMapControls(map) {
     dom.zoomIn.addEventListener('click', () => map.zoomIn());
     dom.zoomOut.addEventListener('click', () => map.zoomOut());
-    dom.compass.addEventListener('click', () => CampusMap.focusOn([CampusMap.CAMPUS_CENTER[1], CampusMap.CAMPUS_CENTER[0]], 16));
+
+    // ---- Compass: drag to rotate, tap to face north, double-tap to auto-rotate
+    let dragging = false;
+    let moved = false;
+    let startAngle = 0;
+    let startRotation = 0;
+    let autoRotateId = null;
+
+    function angleFromCompassCenter(clientX, clientY) {
+      const rect = dom.compass.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+    }
+    function stopAutoRotate() {
+      if (autoRotateId) cancelAnimationFrame(autoRotateId);
+      autoRotateId = null;
+      dom.compass.classList.remove('auto-rotating');
+    }
+
+    dom.compass.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      moved = false;
+      stopAutoRotate();
+      startAngle = angleFromCompassCenter(e.clientX, e.clientY);
+      startRotation = CampusMap.getRotation();
+      dom.compass.setPointerCapture(e.pointerId);
+    });
+    dom.compass.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      moved = true;
+      const angle = angleFromCompassCenter(e.clientX, e.clientY);
+      CampusMap.setRotation(startRotation + (angle - startAngle));
+    });
+    dom.compass.addEventListener('pointerup', () => { dragging = false; });
+    dom.compass.addEventListener('pointercancel', () => { dragging = false; });
+
+    dom.compass.addEventListener('click', () => {
+      if (moved) { moved = false; return; } // a drag just ended — not a tap
+      stopAutoRotate();
+      CampusMap.setRotation(0);
+      CampusMap.focusOn([CampusMap.CAMPUS_CENTER[1], CampusMap.CAMPUS_CENTER[0]], 16);
+    });
+    dom.compass.addEventListener('dblclick', () => {
+      if (autoRotateId) { stopAutoRotate(); return; }
+      dom.compass.classList.add('auto-rotating');
+      const step = () => {
+        CampusMap.setRotation(CampusMap.getRotation() + 0.15);
+        autoRotateId = requestAnimationFrame(step);
+      };
+      autoRotateId = requestAnimationFrame(step);
+    });
+
+    // ---- 3D tilt toggle
+    dom.tiltToggle.addEventListener('click', () => {
+      const active = CampusMap.toggleTilt();
+      dom.tiltToggle.classList.toggle('active', active);
+    });
 
     map.on('moveend', () => {
       const center = map.getCenter();
@@ -405,7 +488,9 @@
       zoomOut: document.getElementById('zoom-out'),
       compass: document.getElementById('compass'),
       recenterBtn: document.getElementById('recenter-btn'),
-      routeToggle: document.getElementById('route-toggle')
+      routeToggle: document.getElementById('route-toggle'),
+      tiltToggle: document.getElementById('tilt-toggle'),
+      drawerHandle: document.getElementById('drawer-handle')
     };
   }
 
@@ -419,6 +504,7 @@
     initMapControls(map);
 
     dom.drawerClose.addEventListener('click', closeDrawer);
+    dom.drawerHandle.addEventListener('click', toggleDrawerExpand);
     dom.routeToggle.addEventListener('click', () => dom.routePanel.classList.toggle('open'));
 
     document.addEventListener('campus:buildingSelected', (e) => openBuildingDrawer(e.detail.building));
