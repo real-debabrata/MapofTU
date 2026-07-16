@@ -8,13 +8,20 @@
  * it works as-is on GitHub Pages.
  * ----------------------------------------------------------------------
  */
-const CACHE_NAME = 'tu-campus-map-v1';
+const CACHE_NAME = 'tu-campus-map-v2'; // bumped: vendored Leaflet + fixes below
 const PRECACHE_URLS = [
   './',
   './index.html',
   './css/style.css',
   './css/dark.css',
   './css/responsive.css',
+  './vendor/leaflet/leaflet.css',
+  './vendor/leaflet/leaflet.js',
+  './vendor/leaflet/images/marker-icon.png',
+  './vendor/leaflet/images/marker-icon-2x.png',
+  './vendor/leaflet/images/marker-shadow.png',
+  './vendor/leaflet/images/layers.png',
+  './vendor/leaflet/images/layers-2x.png',
   './js/helpers.js',
   './js/dataLoader.js',
   './js/map.js',
@@ -38,7 +45,15 @@ const PRECACHE_URLS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => Promise.allSettled(
+        // cache.addAll() is all-or-nothing: one slow/failed request on a
+        // patchy connection would silently abort precaching every other
+        // file too. Adding each file independently means a single miss
+        // doesn't cost the whole offline cache.
+        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
+          console.warn('Precache failed for', url, err);
+        }))
+      ))
       .then(() => self.skipWaiting())
   );
 });
