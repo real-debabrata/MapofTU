@@ -107,6 +107,14 @@ a { color: inherit; }
   transition: transform var(--dur-slow) var(--ease-standard);
   transform-style: preserve-3d;
 }
+/* While a live two-finger rotate/tilt gesture (or the compass drag) is in
+   progress we track the fingers 1:1 with no easing, so the eased
+   transition above is suspended — otherwise every frame lags behind the
+   touch point and the gesture feels sluggish. Restored the instant the
+   gesture ends so taps/buttons still animate smoothly. */
+.leaflet-container.view-gesture-active {
+  transition: none !important;
+}
 .leaflet-container { background: var(--bg-canvas); font-family: var(--font-body); }
 
 /* Signature motif: a thin diamond-tick rule, echoing handloom pachra
@@ -300,6 +308,16 @@ a { color: inherit; }
 }
 .compass-rose svg { width: 22px; height: 22px; color: var(--gold-neermahal); }
 .compass-rose.auto-rotating svg { animation: spin 6s linear infinite; }
+.compass-rose__needle {
+  transform-origin: 12px 12px;
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+/* Subtle depth cue: the compass ring itself eases into an ellipse as the
+   map tilts, echoing the 3D perspective it controls. --tilt-ratio (0..1)
+   is set live from js/ui.js while dragging or via the tilt button. */
+.compass-rose.is-tilted {
+  transform: scaleY(calc(1 - var(--tilt-ratio, 0) * 0.18));
+}
 .tilt-toggle-btn.active { background: var(--teal-monsoon); color: #fff; }
 
 /* ---------- Floating Action Button -------------------------------------- */
