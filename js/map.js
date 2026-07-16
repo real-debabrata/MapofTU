@@ -30,7 +30,9 @@
 
   // ---- Compass rotation / 3D tilt (CSS-driven; see applyViewTransform) --
   let rotationDeg = 0;
-  let tilted = false;
+  let tiltDeg = 0;              // 0 = flat top-down, up to MAX_TILT_DEG = fully tilted 3D
+  const MAX_TILT_DEG = 42;
+  const DEFAULT_TILT_DEG = 28;  // used by the tilt-toggle button (on/off)
 
   /** Category → { color, svgIcon } used for markers, chips and the legend.
    *  Centralizing this means filters.js, search.js and the legend all
@@ -311,24 +313,52 @@
    *  disabled while the view is rotated or tilted (re-enabled the moment
    *  it's back to facing north and flat) so panning never drifts.
    */
+  /** Applies the current rotation + tilt as a single CSS transform on the
+   *  Leaflet container. `scale` grows slightly with tilt so the tilted
+   *  plane still fills the viewport instead of leaving letterboxed
+   *  corners (the classic "3D map" look). */
   function applyViewTransform() {
     if (!map) return;
     const el = map.getContainer();
     const parts = [];
     if (rotationDeg % 360 !== 0) parts.push(`rotate(${rotationDeg}deg)`);
-    if (tilted) parts.push('rotateX(28deg) scale(1.12)');
-    el.style.transformOrigin = tilted ? '50% 70%' : '50% 50%';
+    if (tiltDeg > 0.01) {
+      const scale = 1 + (tiltDeg / MAX_TILT_DEG) * 0.16;
+      parts.push(`rotateX(${tiltDeg}deg) scale(${scale.toFixed(3)})`);
+    }
+    el.style.transformOrigin = tiltDeg > 0.01 ? '50% 70%' : '50% 50%';
     el.style.transform = parts.join(' ');
     const usingCssTransform = parts.length > 0;
     if (usingCssTransform) map.dragging.disable();
     else map.dragging.enable();
+    dispatch('campus:viewTransformChanged', { rotationDeg, tiltDeg, maxTiltDeg: MAX_TILT_DEG });
+  }
+
+  /** Toggles a class that removes the (otherwise pleasant) CSS transition
+   *  on the map container. Live two-finger gestures set this while
+   *  active so every frame tracks the fingers instantly; button/compass
+   *  taps leave the transition on for a smooth animated snap. */
+  function setGestureActive(active) {
+    if (!map) return;
+    map.getContainer().classList.toggle('view-gesture-active', active);
   }
 
   function setRotation(deg) { rotationDeg = deg; applyViewTransform(); }
   function getRotation() { return rotationDeg; }
-  function resetView3D() { rotationDeg = 0; tilted = false; applyViewTransform(); }
-  function toggleTilt() { tilted = !tilted; applyViewTransform(); return tilted; }
-  function isTilted() { return tilted; }
+
+  /** Continuous tilt setter (0..MAX_TILT_DEG) used by the two-finger drag
+   *  gesture; also used internally by the on/off tilt button. */
+  function setTilt(deg) { tiltDeg = Math.max(0, Math.min(MAX_TILT_DEG, deg)); applyViewTransform(); }
+  function getTilt() { return tiltDeg; }
+  function getMaxTilt() { return MAX_TILT_DEG; }
+
+  function resetView3D() { rotationDeg = 0; tiltDeg = 0; applyViewTransform(); }
+  function toggleTilt() {
+    tiltDeg = tiltDeg > 0.01 ? 0 : DEFAULT_TILT_DEG;
+    applyViewTransform();
+    return tiltDeg > 0.01;
+  }
+  function isTilted() { return tiltDeg > 0.01; }
 
   function focusOn(lngLat, zoom = 18) {
     map.flyTo([lngLat[1], lngLat[0]], zoom, { duration: 0.9 });
@@ -396,6 +426,10 @@
     computeContentBounds,
     setRotation,
     getRotation,
+    setTilt,
+    getTilt,
+    getMaxTilt,
+    setGestureActive,
     toggleTilt,
     isTilted,
     resetView3D,
