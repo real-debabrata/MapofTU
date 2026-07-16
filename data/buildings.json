@@ -309,41 +309,30 @@
       "helpDesk": "Entrance Lobby"
     },
     {
-  "id": 120,
-  "name": "Birsa Munda Bhavan",
-  "buildingNumber": "02",
-  "category": "academic",
-  "coordinates": [
-    23.761404,
-    91.264958
-  ],
-  "floors": 3,
-  "departments": [
-    "Department of Commerce",
-    "Department of Fine Arts",
-    "Department of Kokborok",
-    "Department of Tourism"
-  ],
-  "image": "",
-  "description": "",
-  "hours": "8:00 AM - 8:00 PM (Mon-Fri)",
-  "accessibility": "Only staircase available",
-  "emergencyContact": "Na",
-  "website": "https://tripurauniv.ac.in/site/index.php/en/",
-  "liftAvailability": false,
-  "wheelchairAccess": false,
-  "washrooms": [
-    "Ground floor",
-    "1st Floor",
-    "2nd Floor"
-  ],
-  "staircases": [
-    "Main Staircase (East)",
-    "Main Staircase (West)"
-  ],
-  "emergencyExit": "Front Exit",
-  "noticeBoard": "In all floors",
-  "helpDesk": "Ground Colour floor"
+      "id": 120,
+      "name": "Birsa Munda Bhavan",
+      "buildingNumber": "02",
+      "category": "academic",
+      "coordinates": [23.761404, 91.264958],
+      "floors": 3,
+      "departments": [
+      "Department of Commerce",
+      "Department of Fine Arts",
+      "Department of Kokborok",
+      "Department of Tourism"],
+      "image": "",
+      "description": "",
+      "hours": "8:00 AM - 8:00 PM (Mon-Fri)",
+      "accessibility": "Only staircase available",
+      "emergencyContact": "Na",
+      "website": "https://tripurauniv.ac.in/site/index.php/en/",
+      "liftAvailability": false,
+      "wheelchairAccess": false,
+      "washrooms": ["Ground floor","1st Floor","2nd Floor"],
+      "staircases": ["Main Staircase (East)","Main Staircase (West)"],
+      "emergencyExit": "Front Exit",
+      "noticeBoard": "In all floors",
+      "helpDesk": "Ground Colour floor"
     }
   ]
 }
