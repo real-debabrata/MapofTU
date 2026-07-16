@@ -101,11 +101,20 @@ a { color: inherit; }
 .skip-link:focus { left: 0; }
 
 /* ---------- App shell ------------------------------------------------- */
-#app-shell { position: relative; width: 100%; height: 100vh; height: 100dvh; perspective: 1400px; }
+#app-shell {
+  position: relative; width: 100%; height: 100vh; height: 100dvh;
+  perspective: 1400px;
+  overflow: hidden; /* belt-and-braces: a rotated/tilted #map-canvas must
+    never be able to reveal anything behind it. The topbar, sidebar and
+    floating controls are separate siblings of #map-canvas in here and
+    are never part of its transform, so they stay put and upright no
+    matter how the map itself is rotated or tilted. */
+}
 #map-canvas {
   position: absolute; inset: 0; background: var(--bg-canvas);
   transition: transform var(--dur-slow) var(--ease-standard);
   transform-style: preserve-3d;
+  will-change: transform;
 }
 /* While a live two-finger rotate/tilt gesture (or the compass drag) is in
    progress we track the fingers 1:1 with no easing, so the eased
