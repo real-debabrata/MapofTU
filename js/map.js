@@ -28,12 +28,6 @@
   const layerGroups = {}; // category -> L.LayerGroup
   let markersById = {}; // "building-101" -> L.Marker, for programmatic focus
 
-  // ---- Compass rotation / 3D tilt (CSS-driven; see applyViewTransform) --
-  let rotationDeg = 0;
-  let tiltDeg = 0;              // 0 = flat top-down, up to MAX_TILT_DEG = fully tilted 3D
-  const MAX_TILT_DEG = 42;
-  const DEFAULT_TILT_DEG = 28;  // used by the tilt-toggle button (on/off)
-
   /** Category → { color, svgIcon } used for markers, chips and the legend.
    *  Centralizing this means filters.js, search.js and the legend all
    *  render in sync with a single source of truth. */
@@ -327,98 +321,6 @@
     map.fitBounds(L.latLngBounds(coordsLatLng), { padding: [80, 80] });
   }
 
-  /** Leaflet itself only understands a flat, unrotated 2D map, so a
-   *  "compass rotate" and "3D tilt" are done as a CSS transform on the
-   *  map's own container element — this rotates/tilts the tiles, roads,
-   *  buildings and markers together as one image, which is what most
-   *  people mean by "rotate the map". Because Leaflet's own drag/zoom
-   *  math is computed in the *untransformed* pixel space, dragging is
-   *  disabled while the view is rotated or tilted (re-enabled the moment
-   *  it's back to facing north and flat) so panning never drifts.
-   */
-  /** Applies the current rotation + tilt as a single CSS transform on the
-   *  Leaflet container (#map-canvas). #map-canvas is its own element —
-   *  the topbar, sidebar and floating controls are separate siblings in
-   *  #app-shell and never touch this transform, so they never move.
-   *
-   *  What DID make it look like "the whole website is rotating": the
-   *  old code only grew `scale()` to compensate for tilt, never for
-   *  rotation. Rotating a full-viewport rectangle about its own center
-   *  pulls its 4 corners in from the screen edges, exposing blank
-   *  background in the gaps — and since the map fills nearly the whole
-   *  screen, that corner-flicker reads as the entire page spinning, even
-   *  though only #map-canvas ever moved. The fix is to compute the exact
-   *  scale needed, from the real viewport width/height, so the rotated
-   *  (and/or tilted) rectangle always fully covers the screen with no
-   *  gaps — the classic "cover" trick, just angle-aware now. */
-  function requiredCoverScale(rotDeg, tDeg) {
-    const el = map.getContainer();
-    const w = el.clientWidth || window.innerWidth || 1;
-    const h = el.clientHeight || window.innerHeight || 1;
-    const rad = (rotDeg * Math.PI) / 180;
-    // Scale needed for a rectangle rotated by `rad` about its center to
-    // still fully cover its own original footprint.
-    const rotScale = Math.abs(Math.cos(rad)) + Math.abs(Math.sin(rad)) * (w / h);
-    // A little extra headroom for the tilt's foreshortening (tilt shifts
-    // the pivot toward the bottom, so the top edge needs more slack).
-    const tiltScale = 1 + (tDeg / MAX_TILT_DEG) * 0.32;
-    return Math.max(rotScale, 1) * tiltScale;
-  }
-
-  function applyViewTransform() {
-    if (!map) return;
-    const el = map.getContainer();
-    const parts = [];
-    if (rotationDeg % 360 !== 0) parts.push(`rotate(${rotationDeg}deg)`);
-    if (tiltDeg > 0.01) parts.push(`rotateX(${tiltDeg}deg)`);
-    const scale = requiredCoverScale(rotationDeg, tiltDeg);
-    if (scale > 1.001) parts.push(`scale(${scale.toFixed(3)})`);
-    el.style.transformOrigin = tiltDeg > 0.01 ? '50% 70%' : '50% 50%';
-    el.style.transform = parts.join(' ');
-    const usingCssTransform = parts.length > 0;
-    if (usingCssTransform) map.dragging.disable();
-    else map.dragging.enable();
-    dispatch('campus:viewTransformChanged', { rotationDeg, tiltDeg, maxTiltDeg: MAX_TILT_DEG });
-  }
-
-  // Recompute coverage on resize/orientation-change — the required scale
-  // depends on the live viewport aspect ratio, so a phone rotating from
-  // portrait to landscape (or a desktop window resize) while the map view
-  // is itself rotated/tilted needs a fresh scale, not the one computed
-  // for the old dimensions.
-  let resizeRaf = null;
-  window.addEventListener('resize', () => {
-    if (!map || (rotationDeg % 360 === 0 && tiltDeg <= 0.01)) return;
-    if (resizeRaf) cancelAnimationFrame(resizeRaf);
-    resizeRaf = requestAnimationFrame(applyViewTransform);
-  });
-
-  /** Toggles a class that removes the (otherwise pleasant) CSS transition
-   *  on the map container. Live two-finger gestures set this while
-   *  active so every frame tracks the fingers instantly; button/compass
-   *  taps leave the transition on for a smooth animated snap. */
-  function setGestureActive(active) {
-    if (!map) return;
-    map.getContainer().classList.toggle('view-gesture-active', active);
-  }
-
-  function setRotation(deg) { rotationDeg = deg; applyViewTransform(); }
-  function getRotation() { return rotationDeg; }
-
-  /** Continuous tilt setter (0..MAX_TILT_DEG) used by the two-finger drag
-   *  gesture; also used internally by the on/off tilt button. */
-  function setTilt(deg) { tiltDeg = Math.max(0, Math.min(MAX_TILT_DEG, deg)); applyViewTransform(); }
-  function getTilt() { return tiltDeg; }
-  function getMaxTilt() { return MAX_TILT_DEG; }
-
-  function resetView3D() { rotationDeg = 0; tiltDeg = 0; applyViewTransform(); }
-  function toggleTilt() {
-    tiltDeg = tiltDeg > 0.01 ? 0 : DEFAULT_TILT_DEG;
-    applyViewTransform();
-    return tiltDeg > 0.01;
-  }
-  function isTilted() { return tiltDeg > 0.01; }
-
   function focusOn(lngLat, zoom = 18) {
     map.flyTo([lngLat[1], lngLat[0]], zoom, { duration: 0.9 });
   }
@@ -483,15 +385,6 @@
     focusMarker,
     drawRoute,
     computeContentBounds,
-    setRotation,
-    getRotation,
-    setTilt,
-    getTilt,
-    getMaxTilt,
-    setGestureActive,
-    toggleTilt,
-    isTilted,
-    resetView3D,
     CAMPUS_CENTER
   };
 })(window);

@@ -301,8 +301,8 @@
   function closeRoutePanel() { dom.routePanel.classList.remove('open'); CampusMap.drawRoute(null); }
 
   function computeRoute() {
-    if (!state.routeStart || !state.routeEnd) {
-      showToast('Choose a starting point and a destination', 'error');
+    if (!state.routeStart?.coord || !state.routeEnd?.coord) {
+      showToast('Pick a starting point and destination from the suggestions', 'error');
       return;
     }
     const result = CampusRouting.findRoute(state.routeStart.coord, state.routeEnd.coord);
@@ -314,19 +314,96 @@
     dom.routeSummary.innerHTML = `
       <span>Distance: <strong>${CampusHelpers.formatDistance(result.distanceMeters)}</strong></span>
       <span>Walk time: <strong>~${result.walkMinutes} min</strong></span>
+      <button class="btn btn-ghost" id="route-copy-directions" type="button">Copy directions</button>
     `;
     dom.routeSummary.style.display = 'flex';
+    document.getElementById('route-copy-directions').addEventListener('click', () => {
+      const text = `${state.routeStart.label} → ${state.routeEnd.label} · ${CampusHelpers.formatDistance(result.distanceMeters)} · ~${result.walkMinutes} min walk`;
+      navigator.clipboard?.writeText(text).then(() => showToast('Directions copied', 'success'))
+        .catch(() => showToast('Could not copy directions', 'error'));
+    });
+  }
+
+  /** Live "show the location as you type" dropdown for a route input,
+   *  built on the same search index as the main search box (CampusSearch).
+   *  Selecting a suggestion is the only way a route input gets a real
+   *  coordinate attached — free-typed text with nothing picked never
+   *  resolves to a place, so Find Route can catch it up front instead of
+   *  silently failing. */
+  function wireLocationAutocomplete(wrapEl, inputEl, suggestionsEl, onSelect) {
+    let results = [];
+    let activeIdx = -1;
+
+    function render(query) {
+      results = query ? CampusSearch.rank(query).slice(0, 8) : [];
+      activeIdx = -1;
+      if (!query) { suggestionsEl.classList.remove('open'); suggestionsEl.innerHTML = ''; return; }
+      if (!results.length) {
+        suggestionsEl.innerHTML = '<div class="suggestion-empty">No matches. Try a building, room, or department name.</div>';
+        suggestionsEl.classList.add('open');
+        return;
+      }
+      suggestionsEl.innerHTML = results.map((r, i) => `
+        <div class="suggestion-item" data-idx="${i}" role="option">
+          <div class="suggestion-text">
+            <span class="suggestion-title">${CampusHelpers.escapeHTML(r.title)}</span>
+            <span class="suggestion-meta">${CampusHelpers.escapeHTML(r.meta)}</span>
+          </div>
+        </div>`).join('');
+      suggestionsEl.classList.add('open');
+    }
+
+    function highlight() {
+      suggestionsEl.querySelectorAll('.suggestion-item').forEach((el) => {
+        el.classList.toggle('active', Number(el.dataset.idx) === activeIdx);
+      });
+    }
+
+    function close() { suggestionsEl.classList.remove('open'); }
+
+    function pick(entry) {
+      if (!entry) return;
+      onSelect(entry);
+      close();
+    }
+
+    inputEl.addEventListener('input', CampusHelpers.debounce(() => render(inputEl.value.trim()), 120));
+    inputEl.addEventListener('focus', () => { if (inputEl.value.trim()) render(inputEl.value.trim()); });
+    inputEl.addEventListener('keydown', (e) => {
+      if (!results.length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(results.length - 1, activeIdx + 1); highlight(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(0, activeIdx - 1); highlight(); }
+      else if (e.key === 'Enter') { e.preventDefault(); pick(results[activeIdx >= 0 ? activeIdx : 0]); }
+      else if (e.key === 'Escape') { close(); inputEl.blur(); }
+    });
+    suggestionsEl.addEventListener('click', (e) => {
+      const item = e.target.closest('.suggestion-item');
+      if (!item) return;
+      pick(results[Number(item.dataset.idx)]);
+    });
+    document.addEventListener('click', (e) => { if (!wrapEl.contains(e.target)) close(); });
+  }
+
+  function locateForRouteStart() {
+    if (!navigator.geolocation) { showToast('Geolocation is not supported on this device', 'error'); return; }
+    showToast('Locating you…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setRouteStart({ coord: [pos.coords.longitude, pos.coords.latitude], label: 'My Location' });
+        showToast('Location found', 'success');
+      },
+      () => showToast('Could not access your location', 'error')
+    );
   }
 
   function initRoutePanel() {
-    dom.routeStartInput.addEventListener('input', CampusHelpers.debounce(() => {
-      const q = dom.routeStartInput.value.trim();
-      state.routeStart = q ? { coord: state.routeStart?.coord, label: q } : null;
-    }, 150));
-    dom.routeEndInput.addEventListener('input', CampusHelpers.debounce(() => {
-      const q = dom.routeEndInput.value.trim();
-      state.routeEnd = q ? { coord: state.routeEnd?.coord, label: q } : null;
-    }, 150));
+    wireLocationAutocomplete(dom.routeStartWrap, dom.routeStartInput, dom.routeStartSuggestions, (entry) => {
+      setRouteStart({ coord: entry.coord, label: entry.title });
+    });
+    wireLocationAutocomplete(dom.routeEndWrap, dom.routeEndInput, dom.routeEndSuggestions, (entry) => {
+      setRouteEnd({ coord: entry.coord, label: entry.title });
+    });
+    dom.routeStartLocate.addEventListener('click', locateForRouteStart);
 
     dom.routeSwap.addEventListener('click', () => {
       const tmp = state.routeStart;
@@ -398,83 +475,9 @@
     dom.zoomIn.addEventListener('click', () => map.zoomIn());
     dom.zoomOut.addEventListener('click', () => map.zoomOut());
 
-    // ---- Compass: drag to rotate, tap to face north, double-tap to auto-rotate
-    let dragging = false;
-    let moved = false;
-    let startAngle = 0;
-    let startRotation = 0;
-    let autoRotateId = null;
-
-    function angleFromCompassCenter(clientX, clientY) {
-      const rect = dom.compass.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
-    }
-    function stopAutoRotate() {
-      if (autoRotateId) cancelAnimationFrame(autoRotateId);
-      autoRotateId = null;
-      dom.compass.classList.remove('auto-rotating');
-    }
-
-    dom.compass.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      moved = false;
-      stopAutoRotate();
-      startAngle = angleFromCompassCenter(e.clientX, e.clientY);
-      startRotation = CampusMap.getRotation();
-      dom.compass.setPointerCapture(e.pointerId);
-    });
-    dom.compass.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      moved = true;
-      const angle = angleFromCompassCenter(e.clientX, e.clientY);
-      CampusMap.setRotation(startRotation + (angle - startAngle));
-    });
-    dom.compass.addEventListener('pointerup', () => { dragging = false; });
-    dom.compass.addEventListener('pointercancel', () => { dragging = false; });
-
-    dom.compass.addEventListener('click', () => {
-      if (moved) { moved = false; return; } // a drag just ended — not a tap
-      stopAutoRotate();
-      CampusMap.setRotation(0);
-      CampusMap.focusOn([CampusMap.CAMPUS_CENTER[1], CampusMap.CAMPUS_CENTER[0]], 16);
-    });
-    dom.compass.addEventListener('dblclick', () => {
-      if (autoRotateId) { stopAutoRotate(); return; }
-      dom.compass.classList.add('auto-rotating');
-      const step = () => {
-        CampusMap.setRotation(CampusMap.getRotation() + 0.15);
-        autoRotateId = requestAnimationFrame(step);
-      };
-      autoRotateId = requestAnimationFrame(step);
-    });
-
-    // ---- 3D tilt toggle
-    dom.tiltToggle.addEventListener('click', () => {
-      const active = CampusMap.toggleTilt();
-      dom.tiltToggle.classList.toggle('active', active);
-    });
-
-    // ---- Keep the compass needle + tilt button in sync with the current
-    // rotation/tilt no matter what changed it (compass drag, tilt button,
-    // or the two-finger touch gesture below).
-    const needle = dom.compass.querySelector('.compass-rose__needle');
-    document.addEventListener('campus:viewTransformChanged', (e) => {
-      const { rotationDeg, tiltDeg, maxTiltDeg } = e.detail;
-      if (needle) needle.style.transform = `rotate(${-rotationDeg}deg)`;
-      dom.tiltToggle.classList.toggle('active', tiltDeg > 0.01);
-      dom.compass.classList.toggle('is-tilted', tiltDeg > 0.01);
-      dom.compass.style.setProperty('--tilt-ratio', String(Math.min(1, tiltDeg / maxTiltDeg)));
-    });
-
-    // ---- Two-finger touch gesture on the map itself: twist to rotate
-    // (any heading, not just multiples of 90°), drag two fingers up/down
-    // together to tilt into/out of 3D. Mirrors the compass/tilt-button
-    // behavior but works anywhere on the map, with two fingers, like
-    // Google Maps. Left alone, Leaflet's own single-finger pan and
-    // pinch-to-zoom keep working exactly as before.
-    initTwoFingerRotateAndTilt(map);
+    // The map is intentionally flat 2D only: no compass rotation, no 3D
+    // tilt, and no two-finger rotate/tilt gesture. Leaflet's default
+    // single-finger pan and pinch-to-zoom are left completely untouched.
 
     map.on('moveend', () => {
       const center = map.getCenter();
@@ -482,83 +485,6 @@
       dom.recenterBtn.classList.toggle('visible', d > 900);
     });
     dom.recenterBtn.addEventListener('click', () => CampusMap.focusOn([CampusMap.CAMPUS_CENTER[1], CampusMap.CAMPUS_CENTER[0]], 16));
-  }
-
-  /** Two-finger "twist to rotate, drag to tilt" gesture directly on the
-   *  map, tracked with Pointer Events so each finger is identified by its
-   *  own pointerId (works the same as the existing single-pointer
-   *  compass-drag code above, just with two pointers at once).
-   *
-   *  - Twisting the two fingers around each other rotates the map to
-   *    face any heading (not just North/45°-snapped steps).
-   *  - Moving both fingers up/down together (without twisting much)
-   *    tilts the map into/out of the 3D view, from flat (North-up, 2D)
-   *    to fully tilted, at any angle in between.
-   *  Both gestures can blend, same as tilting a physical map in your
-   *  hands. Leaflet's own pinch-to-zoom keeps working independently,
-   *  since we only ever touch the CSS rotate/tilt transform, never
-   *  zoom or pan. */
-  function initTwoFingerRotateAndTilt(map) {
-    const el = map.getContainer();
-    const active = new Map(); // pointerId -> {x, y}
-    let gesture = null; // { startAngle, startRotation, startMidY, startTilt }
-
-    function points() { return [...active.values()]; }
-    function angleBetween(p1, p2) {
-      return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
-    }
-    function midY(p1, p2) { return (p1.y + p2.y) / 2; }
-
-    function beginGesture() {
-      const [p1, p2] = points();
-      gesture = {
-        startAngle: angleBetween(p1, p2),
-        startRotation: CampusMap.getRotation(),
-        startMidY: midY(p1, p2),
-        startTilt: CampusMap.getTilt()
-      };
-      CampusMap.setGestureActive(true);
-    }
-
-    function updateGesture() {
-      if (!gesture || active.size < 2) return;
-      const [p1, p2] = points();
-
-      const angleDelta = angleBetween(p1, p2) - gesture.startAngle;
-      CampusMap.setRotation(gesture.startRotation + angleDelta);
-
-      // Dragging both fingers UP tilts the map away from you (more 3D);
-      // dragging DOWN flattens it back out — same convention as most
-      // map apps' two-finger tilt gesture.
-      const yDelta = gesture.startMidY - midY(p1, p2);
-      CampusMap.setTilt(gesture.startTilt + yDelta / 3);
-    }
-
-    function endGesture() {
-      if (!gesture) return;
-      gesture = null;
-      CampusMap.setGestureActive(false);
-    }
-
-    el.addEventListener('pointerdown', (e) => {
-      if (e.pointerType !== 'touch') return;
-      active.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (active.size === 2) beginGesture();
-      else if (active.size > 2) endGesture(); // a third finger: bail out cleanly
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!active.has(e.pointerId)) return;
-      active.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (active.size === 2) updateGesture();
-    });
-    function release(e) {
-      if (!active.has(e.pointerId)) return;
-      active.delete(e.pointerId);
-      if (active.size < 2) endGesture();
-    }
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
-    el.addEventListener('pointerleave', release);
   }
 
   /* ============================ WIRING =============================== */
@@ -573,7 +499,12 @@
       drawerClose: document.getElementById('drawer-close'),
       routePanel: document.getElementById('route-panel'),
       routeStartInput: document.getElementById('route-start'),
+      routeStartSuggestions: document.getElementById('route-start-suggestions'),
+      routeStartWrap: document.getElementById('route-start').closest('.route-input-wrap'),
+      routeStartLocate: document.getElementById('route-start-locate'),
       routeEndInput: document.getElementById('route-end'),
+      routeEndSuggestions: document.getElementById('route-end-suggestions'),
+      routeEndWrap: document.getElementById('route-end').closest('.route-input-wrap'),
       routeSwap: document.getElementById('route-swap'),
       routeFindBtn: document.getElementById('route-find'),
       routeCloseBtn: document.getElementById('route-close'),
@@ -583,10 +514,9 @@
       fab: document.getElementById('fab-locate'),
       zoomIn: document.getElementById('zoom-in'),
       zoomOut: document.getElementById('zoom-out'),
-      compass: document.getElementById('compass'),
       recenterBtn: document.getElementById('recenter-btn'),
       routeToggle: document.getElementById('route-toggle'),
-      tiltToggle: document.getElementById('tilt-toggle'),
+      filterReset: document.getElementById('filter-reset'),
       drawerHandle: document.getElementById('drawer-handle')
     };
   }
@@ -603,6 +533,10 @@
     dom.drawerClose.addEventListener('click', closeDrawer);
     dom.drawerHandle.addEventListener('click', toggleDrawerExpand);
     dom.routeToggle.addEventListener('click', () => dom.routePanel.classList.toggle('open'));
+    dom.filterReset.addEventListener('click', () => {
+      CampusFilters.resetAll(document.getElementById('filter-chips'), CampusMap.getLayerGroups(), map);
+      showToast('Filters reset', 'success');
+    });
 
     document.addEventListener('campus:buildingSelected', (e) => openBuildingDrawer(e.detail.building));
 
