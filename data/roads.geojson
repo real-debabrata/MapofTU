@@ -59,13 +59,22 @@
       }
     },
     {
-      "type": "Feature",
-      "properties": { "name": "Academic Avenue", "roadType": "internal", "category": "roads" },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [[91.2610, 23.7605]]
-      }
-    },
+  "type": "Feature",
+  "properties": { "name": "Inter Road", "roadType": "internal", "category": "roads" },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [91.2663, 23.7610],
+      [91.2663, 23.7607],
+      [91.2662, 23.7606],
+      [91.2663, 23.7605],
+      [91.2664, 23.7604],
+      [91.2668, 23.7604],
+      [91.2670, 23.7605],
+      [91.2671, 23.7605]
+    ]
+  }
+},
     {
       "type": "Feature",
       "properties": { "name": "Hostel Link Road", "roadType": "internal", "category": "roads" },
