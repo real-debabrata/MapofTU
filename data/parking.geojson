@@ -1,11 +1,113 @@
 {
   "type": "FeatureCollection",
   "features": [
-    { "type": "Feature", "properties": { "name": "Main Gate Parking", "type": "parking", "category": "parking", "capacity": "80 cars" },
-      "geometry": { "type": "Polygon", "coordinates": [[[91.2643,23.7584],[91.2643,23.7588],[91.2652,23.7588],[91.2652,23.7584],[91.2643,23.7584]]] } },
-    { "type": "Feature", "properties": { "name": "Engineering Block Parking", "type": "parking", "category": "parking", "capacity": "50 two-wheelers" },
-      "geometry": { "type": "Polygon", "coordinates": [[[91.2676,23.7618],[91.2676,23.7622],[91.2682,23.7622],[91.2682,23.7618],[91.2676,23.7618]]] } },
-    { "type": "Feature", "properties": { "name": "Faculty Parking - Arts Block", "type": "parking", "category": "parking", "capacity": "30 cars" },
-      "geometry": { "type": "Polygon", "coordinates": [[[91.2644,23.7611],[91.2644,23.7614],[91.2648,23.7614],[91.2648,23.7611],[91.2644,23.7611]]] } }
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Main Gate Parking",
+        "type": "parking",
+        "category": "parking",
+        "capacity": "80 cars"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.2643,
+              23.7584
+            ],
+            [
+              91.2643,
+              23.7588
+            ],
+            [
+              91.2652,
+              23.7588
+            ],
+            [
+              91.2652,
+              23.7584
+            ],
+            [
+              91.2643,
+              23.7584
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Engineering Block Parking",
+        "type": "parking",
+        "category": "parking",
+        "capacity": "50 two-wheelers"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.2676,
+              23.7618
+            ],
+            [
+              91.2676,
+              23.7622
+            ],
+            [
+              91.2682,
+              23.7622
+            ],
+            [
+              91.2682,
+              23.7618
+            ],
+            [
+              91.2676,
+              23.7618
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Faculty Parking - Arts Block",
+        "type": "parking",
+        "category": "parking",
+        "capacity": "30 cars"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.2644,
+              23.7611
+            ],
+            [
+              91.2644,
+              23.7614
+            ],
+            [
+              91.2648,
+              23.7614
+            ],
+            [
+              91.2648,
+              23.7611
+            ],
+            [
+              91.2644,
+              23.7611
+            ]
+          ]
+        ]
+      }
+    }
   ]
 }
