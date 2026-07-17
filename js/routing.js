@@ -35,6 +35,36 @@
     graph.get(kb).edges.set(ka, d);
   }
 
+  /** Dead-end (a.k.a. dangling) nodes are path/road endpoints that were
+   *  meant to meet another feature but, because pathways and roads are
+   *  digitized independently, land a few metres short of it — e.g. a
+   *  footpath drawn up to "the road" without snapping to the road's
+   *  actual vertex. Left alone, this splits the graph into unreachable
+   *  islands and Dijkstra reports "no path found" even though the two
+   *  points are a short walk apart in reality. This pass bridges any
+   *  dead end to the nearest node within STITCH_TOLERANCE_M, which is
+   *  cheap here since the whole graph is only tens of nodes. */
+  const STITCH_TOLERANCE_M = 20;
+
+  function stitchDeadEnds(toleranceMeters) {
+    const keys = [...graph.keys()];
+    const deadEnds = keys.filter((k) => graph.get(k).edges.size <= 1);
+
+    deadEnds.forEach((k) => {
+      const node = graph.get(k);
+      let bestKey = null;
+      let bestDist = Infinity;
+      keys.forEach((other) => {
+        if (other === k || node.edges.has(other)) return;
+        const d = haversineMeters(node.coord, graph.get(other).coord);
+        if (d < bestDist) { bestDist = d; bestKey = other; }
+      });
+      if (bestKey !== null && bestDist <= toleranceMeters) {
+        addEdge(node.coord, graph.get(bestKey).coord);
+      }
+    });
+  }
+
   /** Build the routing graph from the pathways FeatureCollection. Call
    *  once after data loads. Accessible/step-free routing simply prefers
    *  features not tagged "stairs" — none in the sample data, but the
@@ -52,6 +82,7 @@
     };
     addFeatures(pathwaysGeoJSON);
     addFeatures(roadsGeoJSON);
+    stitchDeadEnds(STITCH_TOLERANCE_M);
     nodeCoords = [...graph.values()].map((n) => n.coord);
   }
 
