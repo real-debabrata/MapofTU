@@ -20,9 +20,12 @@
   let activeState = {};
 
   function chipHTML(key, style) {
+    const picker = key === 'roads'
+      ? `<input type="color" class="road-color-picker" value="${style.color}" title="Change road color" aria-label="Change road color">`
+      : '';
     return `<button class="filter-chip" data-key="${key}" aria-pressed="true" style="--chip-color:${style.color}">
       <span class="dot" style="background:${style.color}"></span>${style.label}
-    </button>`;
+    </button>${picker}`;
   }
 
   function render(container, categoryStyle) {
@@ -60,6 +63,11 @@
       if (!group) return;
       if (nowActive) map.addLayer(group);
       else map.removeLayer(group);
+    });
+    container.addEventListener('input', (e) => {
+      if (e.target.classList.contains('road-color-picker')) {
+        global.CampusMap?.setRoadColor(e.target.value);
+      }
     });
   }
 

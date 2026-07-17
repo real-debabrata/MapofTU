@@ -39,14 +39,19 @@
    *  once after data loads. Accessible/step-free routing simply prefers
    *  features not tagged "stairs" — none in the sample data, but the
    *  hook is here for future extension. */
-  function buildGraph(pathwaysGeoJSON) {
+  function buildGraph(pathwaysGeoJSON, roadsGeoJSON) {
     graph = new Map();
-    pathwaysGeoJSON.features.forEach((f) => {
-      const coords = f.geometry.coordinates;
-      for (let i = 0; i < coords.length - 1; i++) {
-        addEdge(coords[i], coords[i + 1]);
-      }
-    });
+    const addFeatures = (fc) => {
+      if (!fc || !fc.features) return;
+      fc.features.forEach((f) => {
+        const coords = f.geometry.coordinates;
+        for (let i = 0; i < coords.length - 1; i++) {
+          addEdge(coords[i], coords[i + 1]);
+        }
+      });
+    };
+    addFeatures(pathwaysGeoJSON);
+    addFeatures(roadsGeoJSON);
     nodeCoords = [...graph.values()].map((n) => n.coord);
   }
 

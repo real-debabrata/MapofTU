@@ -81,9 +81,9 @@
     return L.divIcon({
       className: '',
       html: `<div class="campus-marker" style="background:${color}">${svg || ''}</div>`,
-      iconSize: [34, 34],
-      iconAnchor: [17, 30],
-      popupAnchor: [0, -28]
+      iconSize: [24, 24],
+      iconAnchor: [12, 21],
+      popupAnchor: [0, -20]
     });
   }
 
@@ -217,17 +217,27 @@
     group.addTo(map);
   }
 
+  const roadLayerRefs = []; // individual L.geoJSON layers, for live recoloring
+
   function addRoadsLayer() {
     const group = L.layerGroup();
+    roadLayerRefs.length = 0;
     data.geo.roads.features.forEach((f) => {
       const isMain = f.properties.roadType === 'main';
       const layer = L.geoJSON(f, {
-        style: { color: '#B8B2A0', weight: isMain ? 6 : 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
+        style: { color: CATEGORY_STYLE.roads.color, weight: isMain ? 6 : 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
       });
+      roadLayerRefs.push(layer);
       group.addLayer(layer);
     });
     layerGroups.roads = group;
     group.addTo(map);
+  }
+
+  /** Live-recolor all road segments (e.g. from a legend color picker). */
+  function setRoadColor(color) {
+    CATEGORY_STYLE.roads.color = color;
+    roadLayerRefs.forEach((layer) => layer.setStyle({ color }));
   }
 
   function addPathwaysLayer() {
@@ -384,6 +394,7 @@
     focusOn,
     focusMarker,
     drawRoute,
+    setRoadColor,
     computeContentBounds,
     CAMPUS_CENTER
   };
