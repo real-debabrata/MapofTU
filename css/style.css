@@ -37,8 +37,8 @@
   --r-lg: 20px;
   --r-pill: 999px;
 
-  /* Type */
-  --font-display: 'Fraunces', 'Georgia', serif;
+  /* Type — modern, all-sans pairing (no serif) */
+  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
@@ -103,26 +103,10 @@ a { color: inherit; }
 /* ---------- App shell ------------------------------------------------- */
 #app-shell {
   position: relative; width: 100%; height: 100vh; height: 100dvh;
-  perspective: 1400px;
-  overflow: hidden; /* belt-and-braces: a rotated/tilted #map-canvas must
-    never be able to reveal anything behind it. The topbar, sidebar and
-    floating controls are separate siblings of #map-canvas in here and
-    are never part of its transform, so they stay put and upright no
-    matter how the map itself is rotated or tilted. */
+  overflow: hidden;
 }
 #map-canvas {
   position: absolute; inset: 0; background: var(--bg-canvas);
-  transition: transform var(--dur-slow) var(--ease-standard);
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-/* While a live two-finger rotate/tilt gesture (or the compass drag) is in
-   progress we track the fingers 1:1 with no easing, so the eased
-   transition above is suspended — otherwise every frame lags behind the
-   touch point and the gesture feels sluggish. Restored the instant the
-   gesture ends so taps/buttons still animate smoothly. */
-.leaflet-container.view-gesture-active {
-  transition: none !important;
 }
 .leaflet-container { background: var(--bg-canvas); font-family: var(--font-body); }
 
@@ -289,7 +273,7 @@ a { color: inherit; }
 .legend-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); }
 .legend-swatch { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
 
-/* ---------- Map control cluster (zoom, compass, locate) ---------------- */
+/* ---------- Map control cluster (zoom only — flat 2D map) --------------- */
 .map-controls {
   position: absolute; right: 18px; bottom: 120px; z-index: 800;
   display: flex; flex-direction: column; gap: 10px; align-items: center;
@@ -308,26 +292,6 @@ a { color: inherit; }
 }
 .zoom-stack button:last-child { border-bottom: none; }
 .zoom-stack button:hover { background: rgba(27,122,114,0.10); }
-
-.compass-rose {
-  width: 46px; height: 46px; border-radius: 50%; cursor: pointer;
-  background: var(--glass-bg); border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-sm); display: grid; place-items: center;
-  transition: transform var(--dur-med) var(--ease-standard);
-}
-.compass-rose svg { width: 22px; height: 22px; color: var(--gold-neermahal); }
-.compass-rose.auto-rotating svg { animation: spin 6s linear infinite; }
-.compass-rose__needle {
-  transform-origin: 12px 12px;
-  transition: transform var(--dur-fast) var(--ease-standard);
-}
-/* Subtle depth cue: the compass ring itself eases into an ellipse as the
-   map tilts, echoing the 3D perspective it controls. --tilt-ratio (0..1)
-   is set live from js/ui.js while dragging or via the tilt button. */
-.compass-rose.is-tilted {
-  transform: scaleY(calc(1 - var(--tilt-ratio, 0) * 0.18));
-}
-.tilt-toggle-btn.active { background: var(--teal-monsoon); color: #fff; }
 
 /* ---------- Floating Action Button -------------------------------------- */
 .fab {
@@ -500,17 +464,29 @@ a { color: inherit; }
 .route-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .route-dot--start { background: var(--teal-monsoon); }
 .route-dot--end { background: var(--alert-red); }
+.route-input-wrap { flex: 1; position: relative; min-width: 0; }
 .route-input {
-  flex: 1; border: 1px solid var(--border-subtle); border-radius: var(--r-md);
+  width: 100%; border: 1px solid var(--border-subtle); border-radius: var(--r-md);
   padding: 9px 12px; font-size: 13px; background: var(--cream-paper); outline: none;
 }
 .route-input:focus { border-color: var(--teal-monsoon); }
-.route-swap { border: none; background: var(--cream-paper); border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: var(--text-muted); }
+.route-locate-btn { width: 34px; height: 34px; flex-shrink: 0; }
+.route-locate-btn svg { width: 15px; height: 15px; }
+.route-swap { border: none; background: var(--cream-paper); border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: var(--text-muted); flex-shrink: 0; }
 .route-summary {
-  display: flex; gap: 14px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--border-subtle);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--border-subtle);
   font-size: 12.5px; color: var(--text-muted);
 }
 .route-summary strong { color: var(--text-primary); font-family: var(--font-mono); }
+.route-summary .btn { padding: 6px 12px; font-size: 12px; margin-left: auto; }
+
+/* ---------- Sidebar reset-filters button --------------------------------- */
+.filter-reset-btn {
+  margin-top: 8px; border: 1px solid var(--border-subtle); background: transparent;
+  color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; border-radius: var(--r-pill); transition: all var(--dur-fast) var(--ease-standard);
+}
+.filter-reset-btn:hover { background: rgba(27,122,114,0.10); }
 .route-mode-toggle { display: flex; gap: 6px; margin-top: 10px; }
 .route-mode-toggle button {
   flex: 1; padding: 7px; border-radius: var(--r-sm); border: 1px solid var(--border-subtle);
