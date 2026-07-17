@@ -123,7 +123,7 @@
           </div>
 
           <div class="bg-slate-50 p-3 rounded-md border border-slate-200 text-xs text-slate-600 leading-relaxed">
-            <strong>Note:</strong> Final JSON output compiles to <strong>[Longitude, Latitude]</strong> formatted strictly to 4 decimal places without rounding up.
+            <strong>Note:</strong> Final JSON output compiles to <strong>[Longitude, Latitude]</strong> formatted strictly to 6 decimal places without rounding up.
           </div>
 
           <!-- Quick Paste Tool -->
@@ -499,13 +499,13 @@
       btnReset: document.getElementById('btn-reset')
     };
 
-    // Helper: Truncate coordinate value to exactly 4 decimal places without rounding up
-    function truncateTo4Decimals(val) {
+    // Helper: Truncate coordinate value to exactly 6 decimal places without rounding up
+    function truncateTo6Decimals(val) {
       const num = parseFloat(val);
       if (isNaN(num)) return 0;
       const parts = num.toString().split('.');
       if (parts.length === 2) {
-        return parseFloat(parts[0] + '.' + parts[1].substring(0, 4));
+        return parseFloat(parts[0] + '.' + parts[1].substring(0, 6));
       }
       return num;
     }
@@ -516,8 +516,8 @@
       const rawLat = el.bLatitude.value ? parseFloat(el.bLatitude.value) : 0;
 
       // Restrict coordinate precision strictly using the truncation rule
-      const lng = truncateTo4Decimals(rawLng);
-      const lat = truncateTo4Decimals(rawLat);
+      const lng = truncateTo6Decimals(rawLng);
+      const lat = truncateTo6Decimals(rawLat);
 
       const schema = {
         id: el.bId.value ? parseInt(el.bId.value, 10) : null,
@@ -617,7 +617,7 @@
       }
     }
 
-    // Coordinate Parsing Helper - Extracts coordinates from maps (Latitude, Longitude), swaps them to [Longitude, Latitude], and truncates to 4 decimals.
+    // Coordinate Parsing Helper - Extracts coordinates from maps (Latitude, Longitude), swaps them to [Longitude, Latitude], and truncates to 6 decimals.
     function parseCoordinates() {
       const raw = el.quickPaste.value.trim();
       if (!raw) return;
@@ -629,8 +629,8 @@
         const parsedLng = parseFloat(matches[2]);
 
         // Place truncated values inside coordinate fields
-        el.bLatitude.value = truncateTo4Decimals(parsedLat);
-        el.bLongitude.value = truncateTo4Decimals(parsedLng);
+        el.bLatitude.value = truncateTo6Decimals(parsedLat);
+        el.bLongitude.value = truncateTo6Decimals(parsedLng);
         el.quickPaste.value = '';
         compileJSON();
       } else {
@@ -640,8 +640,8 @@
           const parsedLat = parseFloat(spaceMatches[0]);
           const parsedLng = parseFloat(spaceMatches[1]);
           if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-            el.bLatitude.value = truncateTo4Decimals(parsedLat);
-            el.bLongitude.value = truncateTo4Decimals(parsedLng);
+            el.bLatitude.value = truncateTo6Decimals(parsedLat);
+            el.bLongitude.value = truncateTo6Decimals(parsedLng);
             el.quickPaste.value = '';
             compileJSON();
             return;
