@@ -7,7 +7,7 @@
         "name": "Main Gate Security Booth",
         "type": "security",
         "category": "emergency",
-        "contact": "+91-381-2374100"
+        "contact": "Not Available"
       },
       "geometry": {
         "type": "Point",
@@ -20,16 +20,16 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "North Gate Security Booth",
+        "name": "3rd Gate Security Booth",
         "type": "security",
         "category": "emergency",
-        "contact": "+91-381-2374101"
+        "contact": "Not Available"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          91.265,
-          23.7647
+          91.267446,
+          23.761183
         ]
       }
     },
