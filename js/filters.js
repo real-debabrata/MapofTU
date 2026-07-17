@@ -71,5 +71,18 @@
 
   function getActiveState() { return { ...activeState }; }
 
-  global.CampusFilters = { init, getActiveState };
+  /** Turns every filter category back on — used by the sidebar's
+   *  "Reset filters" button so people don't have to hunt down and
+   *  re-click each chip they'd turned off individually. */
+  function resetAll(container, layerGroups, map) {
+    container.querySelectorAll('.filter-chip').forEach((chip) => {
+      chip.setAttribute('aria-pressed', 'true');
+      const key = chip.dataset.key;
+      activeState[key] = true;
+      const group = layerGroups[key];
+      if (group) map.addLayer(group);
+    });
+  }
+
+  global.CampusFilters = { init, getActiveState, resetAll };
 })(window);
