@@ -49,22 +49,7 @@
         ]
       }
     },
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "University Hospital",
-        "type": "medical",
-        "category": "emergency",
-        "contact": "not available"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          91.264536,
-          23.759386
-        ]
-      }
-    },
+  
     {
       "type": "Feature",
       "properties": {
