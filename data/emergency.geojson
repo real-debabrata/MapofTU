@@ -52,16 +52,16 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "University Health Centre",
+        "name": "University Hospital",
         "type": "medical",
         "category": "emergency",
-        "contact": "+91-381-2374111"
+        "contact": "not available"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          91.2628,
-          23.7608
+          91.264536,
+          23.759386
         ]
       }
     },
