@@ -496,6 +496,24 @@
       [91.266709, 23.762345]
       ]
     }
+   },
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Road to girls hostel",
+    "roadType": "internal",
+    "category": "roads"
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [91.265435, 23.761260],
+      [91.265317, 23.761004],
+      [91.265316, 23.760612],
+      [91.265360, 23.759815],
+      [91.265526, 23.759305]
+     ]
+    }
    }
   ]
 }
