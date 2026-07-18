@@ -8,7 +8,7 @@
     { "id": "dept-chem", "name": "Department of Chemistry", "buildingId": 105, "hod": "Prof. T. Reang", "contact": "chemistry@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-math", "name": "Department of Mathematics", "buildingId": 106, "hod": "Prof. B. Chakma", "contact": "math@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-eco", "name": "Department of Economics", "buildingId": 101, "hod": "Prof. D. Tripura", "contact": "economics@tripurauniv.ac.in", "category": "academic" },
-    { "id": "dept-law", "name": "Department of Law", "buildingId": 107, "hod": "Prof. N. Sen", "contact": "law@tripurauniv.ac.in", "category": "academic" },
+    { "id": "dept-law", "name": "Department of Law", "buildingId": 102, "hod": "Prof. N. Sen", "contact": "law@tripurauniv.ac.in", "category": "academic" },
     { "id": "dept-mgmt", "name": "School of Management Studies", "buildingId": 102, "hod": "Prof. P. Datta", "contact": "management@tripurauniv.ac.in", "category": "academic" }
   ]
 }
