@@ -38,7 +38,7 @@
     },
     {
       "id": 102,
-      "name": "Department of Business Management",
+      "name": "Department of Business Management,LAW",
       "buildingNumber": "B-02",
       "category": "academic",
       "coordinates": [
@@ -47,7 +47,8 @@
       ],
       "floors": 4,
       "departments": [
-        "School of Management Studies"
+        "Department of Business Management",
+        "Department of LAW"
       ],
       "image": "assets/images/building-commerce.svg",
       "description": "A modern block housing the commerce and management programmes, complete with a finance lab and case-study rooms.",
