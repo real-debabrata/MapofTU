@@ -102,14 +102,33 @@
       Number.isFinite(coords[0]) && Number.isFinite(coords[1]);
   }
 
-  /** Renders a compact popup for any feature, with a "View details"
-   *  button that hands off to ui.js for the full drawer experience. */
-  function popupHTML(title, subtitle, ctaLabel) {
+  /** Renders a compact popup for any feature, with an optional primary
+   *  CTA (e.g. "View details", hands off to ui.js for the full drawer)
+   *  and an optional "Directions" button that routes the person here —
+   *  including via the road network when that's the shorter/only way in,
+   *  which matters most for parking lots and gates that sit on roads
+   *  rather than footpaths. */
+  function popupHTML(title, subtitle, ctaLabel, directionsCoord) {
     return `<div class="map-popup">
       <h4>${CampusHelpers.escapeHTML(title)}</h4>
       ${subtitle ? `<p>${CampusHelpers.escapeHTML(subtitle)}</p>` : ''}
-      ${ctaLabel ? `<button class="btn btn-primary popup-cta">${ctaLabel}</button>` : ''}
+      <div class="map-popup__actions">
+        ${ctaLabel ? `<button class="btn btn-primary popup-cta">${ctaLabel}</button>` : ''}
+        ${directionsCoord ? `<button class="btn btn-ghost popup-directions">Directions</button>` : ''}
+      </div>
     </div>`;
+  }
+
+  /** Wires the optional "Directions" button in a popup (see popupHTML)
+   *  to the same route-panel flow the building drawer's Directions
+   *  button uses, so ui.js has one code path for "route me here". */
+  function bindDirectionsCta(marker, coord, label) {
+    marker.on('popupopen', (e) => {
+      e.popup._contentNode?.querySelector('.popup-directions')?.addEventListener('click', () => {
+        dispatch('campus:routeToRequested', { coord, label });
+        marker.closePopup();
+      });
+    });
   }
 
   function addBuildingsLayer() {
@@ -167,7 +186,8 @@
       const [lng, lat] = f.geometry.coordinates;
       const svg = LANDMARK_ICONS[f.properties.type] || iconStar();
       const marker = L.marker([lat, lng], { icon: makeDivIcon(CATEGORY_STYLE.landmarks.color, svg), alt: f.properties.name });
-      marker.bindPopup(popupHTML(f.properties.name, f.properties.description));
+      marker.bindPopup(popupHTML(f.properties.name, f.properties.description, null, f.geometry.coordinates));
+      bindDirectionsCta(marker, f.geometry.coordinates, f.properties.name);
       marker.on('click', () => bounceMarker(marker));
       group.addLayer(marker);
       markersById[`landmark-${f.properties.name}`] = marker;
@@ -186,7 +206,8 @@
       const [lng, lat] = f.geometry.coordinates;
       const marker = L.marker([lat, lng], { icon: makeDivIcon(CATEGORY_STYLE.emergency.color, iconAlert()), alt: f.properties.name });
       const subtitle = f.properties.contact ? `Contact: ${f.properties.contact}` : '';
-      marker.bindPopup(popupHTML(f.properties.name, subtitle));
+      marker.bindPopup(popupHTML(f.properties.name, subtitle, null, f.geometry.coordinates));
+      bindDirectionsCta(marker, f.geometry.coordinates, f.properties.name);
       group.addLayer(marker);
     });
     layerGroups.emergency = group;
@@ -199,7 +220,9 @@
       const layer = L.geoJSON(f, {
         style: { color: CATEGORY_STYLE.parking.color, weight: 1, fillOpacity: 0.25, dashArray: '4 3' }
       });
-      layer.bindPopup(popupHTML(f.properties.name, `Capacity: ${f.properties.capacity || 'N/A'}`));
+      const centroid = CampusHelpers.polygonCentroid(f.geometry);
+      layer.bindPopup(popupHTML(f.properties.name, `Capacity: ${f.properties.capacity || 'N/A'}`, null, centroid));
+      if (centroid) bindDirectionsCta(layer, centroid, f.properties.name);
       group.addLayer(layer);
     });
     layerGroups.parking = group;

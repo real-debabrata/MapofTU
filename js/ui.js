@@ -540,6 +540,14 @@
 
     document.addEventListener('campus:buildingSelected', (e) => openBuildingDrawer(e.detail.building));
 
+    // Fired by the "Directions" button in landmark/parking/emergency map
+    // popups (see map.js bindDirectionsCta) — same route-panel flow as a
+    // building's own Directions button.
+    document.addEventListener('campus:routeToRequested', (e) => {
+      setRouteEnd({ coord: e.detail.coord, label: e.detail.label });
+      openRoutePanel();
+    });
+
     document.addEventListener('campus:searchSelected', (e) => {
       const entry = e.detail.entry;
       if (!entry.coord) { showToast('Location not available for this result'); return; }

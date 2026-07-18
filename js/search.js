@@ -66,13 +66,45 @@
         ref: f
       });
     });
+
+    // Parking lots and emergency points (security booths, gates) tend to
+    // sit on or right next to the road network rather than the footpath
+    // network. Indexing them here — not just showing them as map layers —
+    // is what actually lets someone route to "Main Gate Parking" and
+    // exercise the roads.geojson data in CampusRouting, instead of roads
+    // only ever being a pass-through for building-to-building walks.
+    data.geo.parking.features.forEach((f, i) => {
+      const coord = CampusHelpers.polygonCentroid(f.geometry);
+      if (!coord) return;
+      index.push({
+        id: `parking-${i}`,
+        kind: 'parking',
+        title: f.properties.name,
+        meta: `Parking · ${f.properties.capacity || 'Capacity N/A'}`,
+        coord,
+        ref: f
+      });
+    });
+
+    data.geo.emergency.features.forEach((f, i) => {
+      index.push({
+        id: `emergency-${i}`,
+        kind: 'emergency',
+        title: f.properties.name,
+        meta: `Emergency · ${f.properties.type || 'Contact point'}`,
+        coord: f.geometry.coordinates,
+        ref: f
+      });
+    });
   }
 
   const KIND_LABELS = {
     building: 'Buildings',
     room: 'Rooms & Labs',
     department: 'Departments',
-    landmark: 'Landmarks'
+    landmark: 'Landmarks',
+    parking: 'Parking',
+    emergency: 'Emergency & Gates'
   };
 
   function rank(query) {
@@ -99,7 +131,9 @@
       building: '<path d="M3 21V7l9-4 9 4v14"/><path d="M9 21v-6h6v6"/>',
       room: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/>',
       department: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>',
-      landmark: '<path d="m12 2 3.1 6.9 7.4.9-5.5 5.2 1.5 7.3L12 18.8l-6.5 3.5 1.5-7.3-5.5-5.2 7.4-.9Z"/>'
+      landmark: '<path d="m12 2 3.1 6.9 7.4.9-5.5 5.2 1.5 7.3L12 18.8l-6.5 3.5 1.5-7.3-5.5-5.2 7.4-.9Z"/>',
+      parking: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
+      emergency: '<path d="M12 2 3 6v6c0 5 3.8 8.6 9 10 5.2-1.4 9-5 9-10V6l-9-4Z"/><path d="M12 8v5"/><path d="M12 16h.01"/>'
     };
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">${paths[kind] || paths.building}</svg>`;
   }

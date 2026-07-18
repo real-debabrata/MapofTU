@@ -119,6 +119,25 @@
     return url.toString();
   }
 
+  /** Centroid of a Polygon/MultiPolygon's outer ring — good enough for
+   *  a parking-lot-sized shape, and avoids pulling in a full geometry
+   *  library just to get one representative point to route to or from. */
+  function polygonCentroid(geometry) {
+    if (!geometry) return null;
+    const ring = geometry.type === 'Polygon'
+      ? geometry.coordinates[0]
+      : geometry.type === 'MultiPolygon'
+        ? geometry.coordinates[0]?.[0]
+        : null;
+    if (!ring || !ring.length) return null;
+    // Drop the closing point (same as the first) so it isn't double-weighted.
+    const pts = (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1])
+      ? ring.slice(0, -1)
+      : ring;
+    const sum = pts.reduce((acc, [lng, lat]) => [acc[0] + lng, acc[1] + lat], [0, 0]);
+    return [sum[0] / pts.length, sum[1] / pts.length];
+  }
+
   global.CampusHelpers = {
     debounce,
     haversineMeters,
@@ -126,6 +145,7 @@
     fuzzyScore,
     formatDistance,
     estimateWalkMinutes,
+    polygonCentroid,
     storage,
     escapeHTML,
     getQueryParams,
