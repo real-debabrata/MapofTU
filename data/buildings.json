@@ -376,12 +376,12 @@
     },
     {
       "id": 113,
-      "name": "University Health Centre",
+      "name": "University Hospital",
       "buildingNumber": "MED-01",
       "category": "medical",
       "coordinates": [
-        91.2628,
-        23.7608
+        91.264536,
+        23.759386
       ],
       "floors": 1,
       "departments": [],
