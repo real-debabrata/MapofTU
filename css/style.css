@@ -586,6 +586,9 @@ a { color: inherit; }
 .map-popup h4 { font-size: 14px; margin-bottom: 4px; }
 .map-popup p { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 .map-popup button { width: 100%; }
+.map-popup__actions { display: flex; gap: 6px; }
+.map-popup__actions:empty { display: none; }
+.map-popup__actions button { width: auto; flex: 1; }
 
 /* ---------- Keyframes -------------------------------------------------------- */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
