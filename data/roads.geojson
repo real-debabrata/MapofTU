@@ -470,21 +470,30 @@
       }
     },
     {
-      "type": "Feature",
-      "properties": {
-        "name": "Admin Road",
-        "roadType": "internal",
-        "category": "roads"
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            91.265,
-            23.7595
-          ]
-        ]
-      }
+  "type": "Feature",
+  "properties": {
+    "name": "Road to Parking",
+    "roadType": "internal",
+    "category": "roads"
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [91.266515, 23.761019],
+      [91.266607, 23.761309],
+      [91.266612, 23.761368],
+      [91.266585, 23.761425],
+      [91.266531, 23.761511],
+      [91.266534, 23.761545],
+      [91.266588, 23.761579],
+      [91.266582, 23.761621],
+      [91.266325, 23.761952],
+      [91.266290, 23.762006],
+      [91.266290, 23.762055],
+      [91.266314, 23.762092],
+      [91.266709, 23.762345]
+      ]
     }
+   }
   ]
 }
