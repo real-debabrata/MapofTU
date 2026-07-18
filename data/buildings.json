@@ -201,37 +201,6 @@
       "helpDesk": "Not available"
     },
     {
-      "id": 107,
-      "name": "Department of Law",
-      "buildingNumber": "B-07",
-      "category": "academic",
-      "coordinates": [
-        91.2618,
-        23.7595
-      ],
-      "floors": 2,
-      "departments": [
-        "Department of Law"
-      ],
-      "image": "assets/images/building-law.svg",
-      "description": "Home to the law programme, moot court hall, and legal aid clinic.",
-      "hours": "9:00 AM – 5:00 PM (Mon–Sat)",
-      "accessibility": "Ramp available; no lift",
-      "emergencyContact": "+91-381-2374850",
-      "website": "https://tripurauniv.ac.in/law",
-      "liftAvailability": false,
-      "wheelchairAccess": true,
-      "washrooms": [
-        "Ground Floor"
-      ],
-      "staircases": [
-        "Main Staircase"
-      ],
-      "emergencyExit": "Side Exit",
-      "noticeBoard": "Ground Floor Lobby",
-      "helpDesk": "Ground Floor Reception"
-    },
-    {
       "id": 108,
       "name": "Administrative Building",
       "buildingNumber": "ADM-01",
