@@ -449,26 +449,28 @@
       }
     },
     {
-      "type": "Feature",
-      "properties": {
-        "name": "Hostel Link Road",
-        "roadType": "internal",
-        "category": "roads"
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            91.265,
-            23.761
-          ],
-          [
-            91.265,
-            23.764
-          ]
-        ]
+  "type": "Feature",
+  "properties": {
+    "name": "Road to Chemistry Department",
+    "roadType": "internal",
+    "category": "roads"
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [91.265930, 23.761115],
+      [91.265952, 23.761172],
+      [91.265933, 23.761270],
+      [91.265858, 23.761432],
+      [91.265600, 23.761926],
+      [91.265552, 23.761967],
+      [91.265420, 23.762058],
+      [91.264636, 23.762517],
+      [91.264424, 23.762630],
+      [91.263998, 23.762829]
+       ]
       }
-    },
+     },
     {
   "type": "Feature",
   "properties": {
