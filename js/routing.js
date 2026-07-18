@@ -20,15 +20,16 @@
   let graph = null; // Map<nodeKey, { coord, edges: Map<nodeKey, distance> }>
   let nodeCoords = null;
 
-  function ensureNode(coord) {
+  function ensureNode(coord, type) {
     const key = nodeKey(coord);
-    if (!graph.has(key)) graph.set(key, { coord, edges: new Map() });
+    if (!graph.has(key)) graph.set(key, { coord, edges: new Map(), types: new Set() });
+    if (type) graph.get(key).types.add(type);
     return key;
   }
 
-  function addEdge(a, b) {
-    const ka = ensureNode(a);
-    const kb = ensureNode(b);
+  function addEdge(a, b, type) {
+    const ka = ensureNode(a, type);
+    const kb = ensureNode(b, type);
     if (ka === kb) return;
     const d = haversineMeters(a, b);
     graph.get(ka).edges.set(kb, d);
@@ -65,24 +66,66 @@
     });
   }
 
+  /** stitchDeadEnds only looks at dead ends (degree ≤ 1) — but a gap
+   *  between the road network and the pathway network doesn't always
+   *  show up as a dead end. A road can run right past a pathway
+   *  junction that already has two or three other pathway connections,
+   *  so neither point is ever a "dead end" and the gap between the two
+   *  independently-digitized networks never gets bridged. That forces
+   *  routes to backtrack to whichever real connection happens to exist,
+   *  even if it's a long way around, instead of crossing the short gap
+   *  that's actually there (e.g. a crosswalk or curb cut). This pass
+   *  checks every node that has never touched the *other* network type
+   *  and, if the nearest node of that other type is within
+   *  CROSS_TYPE_BRIDGE_TOLERANCE_M, connects them — regardless of how
+   *  many edges either node already has. Restricting it to cross-type
+   *  pairs (road↔pathway only, never pathway↔pathway or road↔road)
+   *  keeps it from inventing shortcuts across a path's own bends. */
+  const CROSS_TYPE_BRIDGE_TOLERANCE_M = 50;
+
+  function bridgeCrossType(toleranceMeters) {
+    const keys = [...graph.keys()];
+    const otherType = { path: 'road', road: 'path' };
+
+    keys.forEach((k) => {
+      const node = graph.get(k);
+      ['path', 'road'].forEach((type) => {
+        if (!node.types.has(type) || node.types.has(otherType[type])) return;
+        let bestKey = null;
+        let bestDist = Infinity;
+        keys.forEach((candidate) => {
+          if (candidate === k || node.edges.has(candidate)) return;
+          const candidateNode = graph.get(candidate);
+          if (!candidateNode.types.has(otherType[type])) return;
+          const d = haversineMeters(node.coord, candidateNode.coord);
+          if (d < bestDist) { bestDist = d; bestKey = candidate; }
+        });
+        if (bestKey !== null && bestDist <= toleranceMeters) {
+          addEdge(node.coord, graph.get(bestKey).coord);
+        }
+      });
+    });
+  }
+
   /** Build the routing graph from the pathways FeatureCollection. Call
    *  once after data loads. Accessible/step-free routing simply prefers
    *  features not tagged "stairs" — none in the sample data, but the
    *  hook is here for future extension. */
   function buildGraph(pathwaysGeoJSON, roadsGeoJSON) {
     graph = new Map();
-    const addFeatures = (fc) => {
+    const addFeatures = (fc, type) => {
       if (!fc || !fc.features) return;
       fc.features.forEach((f) => {
         const coords = f.geometry.coordinates;
         for (let i = 0; i < coords.length - 1; i++) {
-          addEdge(coords[i], coords[i + 1]);
+          addEdge(coords[i], coords[i + 1], type);
         }
       });
     };
-    addFeatures(pathwaysGeoJSON);
-    addFeatures(roadsGeoJSON);
+    addFeatures(pathwaysGeoJSON, 'path');
+    addFeatures(roadsGeoJSON, 'road');
     stitchDeadEnds(STITCH_TOLERANCE_M);
+    bridgeCrossType(CROSS_TYPE_BRIDGE_TOLERANCE_M);
     nodeCoords = [...graph.values()].map((n) => n.coord);
   }
 
