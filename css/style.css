@@ -108,7 +108,7 @@ a { color: inherit; }
 #map-canvas {
   position: absolute; inset: 0; background: var(--bg-canvas);
 }
-.leaflet-container { background: var(--bg-canvas); font-family: var(--font-body); }
+.maplibregl-map { background: var(--bg-canvas); font-family: var(--font-body); }
 
 /* Signature motif: a thin diamond-tick rule, echoing handloom pachra
    borders. Used sparingly as a section divider. */
@@ -564,24 +564,36 @@ a { color: inherit; }
 }
 .loading-label { font-size: 13px; letter-spacing: 0.04em; color: rgba(243,241,234,0.7); }
 
-/* ---------- Leaflet marker & popup theming --------------------------------- */
+/* ---------- MapLibre marker & popup theming --------------------------------- */
+/* MapLibre positions whatever element you hand its Marker with its own
+   inline transform, so that element can't be a full-width block div (it
+   would throw off the anchor-point math) or carry its own CSS transform
+   (map.js hands it a plain wrapper for exactly this reason — see
+   makeMarkerEl in map.js — with the actual ".campus-marker" visual as a
+   child instead). */
+.marker-wrapper { display: inline-block; line-height: 0; }
 .campus-marker {
   display: grid; place-items: center;
   width: 24px; height: 24px; border-radius: 50% 50% 50% 4px;
   transform: rotate(45deg);
   box-shadow: var(--shadow-sm);
   border: 1.5px solid #fff;
+  cursor: pointer;
   transition: transform var(--dur-fast) var(--ease-emphasized);
 }
-.campus-marker svg { transform: rotate(-45deg); width: 11px; height: 11px; color: #fff; }
+.campus-marker i { transform: rotate(-45deg); font-size: 11px; color: #fff; }
 .campus-marker:hover { transform: rotate(45deg) scale(1.14); }
-.campus-marker.bounce { animation: markerBounce 0.6s var(--ease-emphasized); }
 
-.leaflet-popup-content-wrapper {
-  border-radius: var(--r-md); box-shadow: var(--shadow-lg);
-  background: var(--bg-surface); padding: 2px;
+.locate-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #2E6BB0; border: 2px solid #fff; box-shadow: var(--shadow-sm);
 }
-.leaflet-popup-tip { background: var(--bg-surface); }
+
+.maplibregl-popup-content {
+  border-radius: var(--r-md); box-shadow: var(--shadow-lg);
+  background: var(--bg-surface); padding: 8px;
+}
+.maplibregl-popup-tip { border-top-color: var(--bg-surface); border-bottom-color: var(--bg-surface); }
 .map-popup { padding: 6px 4px; min-width: 180px; }
 .map-popup h4 { font-size: 14px; margin-bottom: 4px; }
 .map-popup p { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
@@ -594,13 +606,6 @@ a { color: inherit; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes markerBounce {
-  0% { transform: rotate(45deg) translateY(0); }
-  30% { transform: rotate(45deg) translateY(-14px); }
-  55% { transform: rotate(45deg) translateY(0); }
-  70% { transform: rotate(45deg) translateY(-6px); }
-  100% { transform: rotate(45deg) translateY(0); }
-}
 @keyframes toastIn { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(8px) scale(0.96); } }
 @keyframes dashFlow { to { stroke-dashoffset: -24; } }
