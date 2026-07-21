@@ -2,9 +2,9 @@
  * search.js
  * ----------------------------------------------------------------------
  * Builds one flat, searchable index out of buildings, rooms, departments
- * and landmarks, then powers the floating search box: fuzzy ranking,
- * instant suggestions, keyboard navigation, and a small "recent
- * searches" history persisted in localStorage.
+ * and landmarks, then powers the floating search box: Fuse.js-backed
+ * fuzzy ranking, instant suggestions, keyboard navigation, and a small
+ * "recent searches" history persisted in localStorage.
  * ----------------------------------------------------------------------
  */
 (function (global) {
@@ -14,6 +14,7 @@
   const MAX_HISTORY = 6;
 
   let index = []; // [{ id, kind, title, meta, coord, ref }]
+  let fuse = null; // Fuse.js instance over `index`, rebuilt whenever buildIndex runs
   let els = {};
   let activeIndex = -1;
   let currentResults = [];
@@ -96,6 +97,21 @@
         ref: f
       });
     });
+
+    // Real fuzzy matching (typo-tolerance, weighted fields, relevance
+    // scoring) via Fuse.js — falls back to the old hand-rolled
+    // fuzzyScore in rank() below if the library failed to load.
+    if (global.Fuse) {
+      fuse = new global.Fuse(index, {
+        keys: [
+          { name: 'title', weight: 0.7 },
+          { name: 'meta', weight: 0.3 }
+        ],
+        threshold: 0.38,
+        ignoreLocation: true,
+        minMatchCharLength: 1
+      });
+    }
   }
 
   const KIND_LABELS = {
@@ -109,6 +125,7 @@
 
   function rank(query) {
     if (!query) return [];
+    if (fuse) return fuse.search(query, { limit: 24 }).map((r) => r.item);
     const scored = index
       .map((entry) => ({ entry, score: Math.max(CampusHelpers.fuzzyScore(query, entry.title), CampusHelpers.fuzzyScore(query, entry.meta) * 0.6) }))
       .filter((s) => s.score > 0)

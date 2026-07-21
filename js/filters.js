@@ -3,7 +3,8 @@
  * ----------------------------------------------------------------------
  * Renders the sidebar's filter chips and legend from the same
  * CATEGORY_STYLE map.js uses for markers, so labels/colors never drift
- * out of sync. Each chip toggles a Leaflet layer group on/off.
+ * out of sync. Each chip toggles a map.js layer group (markers or
+ * MapLibre style layers, both exposing .show()/.hide()) on/off.
  * ----------------------------------------------------------------------
  */
 (function (global) {
@@ -61,8 +62,8 @@
       activeState[key] = nowActive;
       const group = layerGroups[key];
       if (!group) return;
-      if (nowActive) map.addLayer(group);
-      else map.removeLayer(group);
+      if (nowActive) group.show();
+      else group.hide();
     });
     container.addEventListener('input', (e) => {
       if (e.target.classList.contains('road-color-picker')) {
@@ -88,7 +89,7 @@
       const key = chip.dataset.key;
       activeState[key] = true;
       const group = layerGroups[key];
-      if (group) map.addLayer(group);
+      if (group) group.show();
     });
   }
 

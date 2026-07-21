@@ -14,7 +14,7 @@
     try {
       const data = await CampusData.loadAll();
 
-      const map = CampusMap.init(data);
+      const map = await CampusMap.init(data);
       CampusRouting.buildGraph(data.geo.pathways, data.geo.roads);
 
       CampusSearch.init(data);
