@@ -2,7 +2,7 @@
 
 An open-source, backend-free, GitHub Pages–ready campus navigation platform
 for Tripura University. Built with plain HTML5, CSS3 and vanilla ES6+
-JavaScript, [Leaflet.js](https://leafletjs.com/) and open GeoJSON data — no
+JavaScript,and open GeoJSON data — no
 React, no build step, no server.
 
 > **Design language — "Neermahal":** a palette and type system named after
