@@ -8,20 +8,21 @@
  * it works as-is on GitHub Pages.
  * ----------------------------------------------------------------------
  */
-const CACHE_NAME = 'tu-campus-map-v2'; // bumped: vendored Leaflet + fixes below
+const CACHE_NAME = 'tu-campus-map-v3'; // bumped: MapLibre GL + GSAP + Turf + Fuse + Font Awesome
 const PRECACHE_URLS = [
   './',
   './index.html',
   './css/style.css',
   './css/dark.css',
   './css/responsive.css',
-  './vendor/leaflet/leaflet.css',
-  './vendor/leaflet/leaflet.js',
-  './vendor/leaflet/images/marker-icon.png',
-  './vendor/leaflet/images/marker-icon-2x.png',
-  './vendor/leaflet/images/marker-shadow.png',
-  './vendor/leaflet/images/layers.png',
-  './vendor/leaflet/images/layers-2x.png',
+  './vendor/maplibre/maplibre-gl.css',
+  './vendor/maplibre/maplibre-gl.js',
+  './vendor/turf/turf.min.js',
+  './vendor/fuse/fuse.min.js',
+  './vendor/gsap/gsap.min.js',
+  './vendor/fontawesome/css/all.min.css',
+  './vendor/fontawesome/webfonts/fa-solid-900.woff2',
+  './vendor/fontawesome/webfonts/fa-regular-400.woff2',
   './js/helpers.js',
   './js/dataLoader.js',
   './js/map.js',
