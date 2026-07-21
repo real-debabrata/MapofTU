@@ -5,9 +5,6 @@ for Tripura University. Built with plain HTML5, CSS3 and vanilla ES6+
 JavaScript,and open GeoJSON data — no
 React, no build step, no server.
 
-> **Design language — "Neermahal":** a palette and type system named after
-> Tripura's own lake palace, built specifically for this campus rather than
-> reused from a generic template. See [Design system](#design-system) below.
 
 > **Data-entry tool:** adding buildings/rooms by hand-editing JSON is
 > error-prone, so `/JsonGeneration` is a small in-browser form that builds a
