@@ -11,13 +11,15 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
 
-<!-- Leaflet (open-source mapping library), vendored locally in /vendor —
-     not loaded from a CDN. A CDN + SRI script is one bad/slow/filtered
-     network hop away from silently failing to execute (no console access
-     for most visitors to even notice), which took the whole map down.
-     Shipping it with the app removes that failure point and lets the
-     service worker cache it for real offline use. -->
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<!-- MapLibre GL JS (open-source vector/raster mapping library) and
+     Font Awesome, vendored locally in /vendor — not loaded from a CDN.
+     A CDN + SRI script is one bad/slow/filtered network hop away from
+     silently failing to execute (no console access for most visitors
+     to even notice), which took the whole map down before. Shipping
+     these with the app removes that failure point and lets the service
+     worker cache them for real offline use. -->
+<link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
+<link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
 
 <!-- Typography: modern all-sans pairing (display + body) + a data mono -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -188,8 +190,11 @@
 
 </div>
 
-<!-- Leaflet (open-source, no API key required, served locally — see note above) -->
-<script src="vendor/leaflet/leaflet.js"></script>
+<!-- Open-source libraries, no API key required, all served locally — see note above -->
+<script src="vendor/maplibre/maplibre-gl.js"></script>
+<script src="vendor/turf/turf.min.js"></script>
+<script src="vendor/fuse/fuse.min.js"></script>
+<script src="vendor/gsap/gsap.min.js"></script>
 
 <!-- App modules, loaded in dependency order (no bundler by design) -->
 <script src="js/helpers.js"></script>
