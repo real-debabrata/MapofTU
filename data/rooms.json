@@ -77,6 +77,40 @@
   "nearby": [
     "1201"
   ]
+    },
+    {
+  "id": 1203,
+  "building": 120,
+  "floor": 2,
+  "room": "D-1",
+  "name": "Department Library ",
+  "type": "Library ",
+  "capacity": 15,
+  "department": "Department of Commerce ",
+  "facilities": [
+    "Master Reading Table",
+    "Book shelves"
+  ],
+  "nearby": [
+    "1201"
+  ]
+    },
+    {
+  "id": 1204,
+  "building": 120,
+  "floor": 2,
+  "room": "M-1",
+  "name": "Meeting Room ",
+  "type": "Meeting Room ",
+  "capacity": 7,
+  "department": "Department of Commerce ",
+  "facilities": [
+    "AC"
+  ],
+  "nearby": [
+    "1202",
+    "1203"
+  ]
     }
   ]
 }
