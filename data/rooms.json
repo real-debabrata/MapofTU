@@ -59,6 +59,24 @@
     "Double Black Board"
   ],
   "nearby": []
+    },
+    {
+  "id": 1202,
+  "building": 120,
+  "floor": 2,
+  "room": "L-2",
+  "name": "Lecture Room no 2",
+  "type": "Classroom",
+  "capacity": 60,
+  "department": "Department of Commerce ",
+  "facilities": [
+    "Smart Board",
+    "Sound System",
+    "One Black Board"
+  ],
+  "nearby": [
+    "1201"
+  ]
     }
   ]
 }
