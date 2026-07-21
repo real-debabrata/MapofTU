@@ -19,8 +19,12 @@
     };
   }
 
-  /** Haversine distance in meters between two [lng, lat] points. */
+  /** Distance in meters between two [lng, lat] points. Uses Turf.js's
+   *  spherical-law-of-cosines implementation when available, falling
+   *  back to a plain haversine calculation so a Turf load failure never
+   *  breaks routing/search distance display. */
   function haversineMeters(a, b) {
+    if (global.turf) return global.turf.distance(a, b, { units: 'kilometers' }) * 1000;
     const R = 6371000;
     const toRad = (d) => (d * Math.PI) / 180;
     const dLat = toRad(b[1] - a[1]);

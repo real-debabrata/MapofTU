@@ -29,6 +29,7 @@
     document.documentElement.setAttribute('data-theme', resolved);
     dom.themeToggle.innerHTML = mode === 'dark' ? iconMoon() : mode === 'light' ? iconSun() : iconAuto();
     dom.themeToggle.setAttribute('aria-label', `Theme: ${mode}. Click to change.`);
+    global.CampusMap?.setBaseTheme(resolved);
   }
 
   function initTheme() {
@@ -310,7 +311,7 @@
       showToast('No walking path found between these points', 'error');
       return;
     }
-    CampusMap.drawRoute(result.coordsLatLng);
+    CampusMap.drawRoute(result.coordsLngLat);
     dom.routeSummary.innerHTML = `
       <span>Distance: <strong>${CampusHelpers.formatDistance(result.distanceMeters)}</strong></span>
       <span>Walk time: <strong>~${result.walkMinutes} min</strong></span>
@@ -428,10 +429,9 @@
   let contextCoord = null;
   function initContextMenu(map) {
     map.on('contextmenu', (e) => {
-      contextCoord = [e.latlng.lng, e.latlng.lat];
-      const point = map.latLngToContainerPoint(e.latlng);
-      dom.contextMenu.style.left = `${point.x}px`;
-      dom.contextMenu.style.top = `${point.y}px`;
+      contextCoord = [e.lngLat.lng, e.lngLat.lat];
+      dom.contextMenu.style.left = `${e.point.x}px`;
+      dom.contextMenu.style.top = `${e.point.y}px`;
       dom.contextMenu.classList.add('open');
     });
     map.on('click', () => dom.contextMenu.classList.remove('open'));
@@ -460,7 +460,10 @@
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const coord = [pos.coords.longitude, pos.coords.latitude];
-          L.circleMarker([coord[1], coord[0]], { radius: 8, color: '#fff', weight: 2, fillColor: '#2E6BB0', fillOpacity: 1 }).addTo(map);
+          const dot = document.createElement('div');
+          dot.className = 'locate-dot';
+          new maplibregl.Marker({ element: dot, anchor: 'center' }).setLngLat(coord).addTo(map);
+          if (window.gsap) gsap.fromTo(dot, { scale: 0 }, { scale: 1, duration: 0.4, ease: 'back.out(2)' });
           CampusMap.focusOn(coord, 18);
           setRouteStart({ coord, label: 'My Location' });
           showToast('Location found', 'success');
@@ -476,8 +479,9 @@
     dom.zoomOut.addEventListener('click', () => map.zoomOut());
 
     // The map is intentionally flat 2D only: no compass rotation, no 3D
-    // tilt, and no two-finger rotate/tilt gesture. Leaflet's default
-    // single-finger pan and pinch-to-zoom are left completely untouched.
+    // tilt, and no two-finger rotate/tilt gesture (disabled in map.js's
+    // init: dragRotate/pitchWithRotate off, touch rotation disabled).
+    // Single-finger pan and pinch-to-zoom are left completely untouched.
 
     map.on('moveend', () => {
       const center = map.getCenter();

@@ -1,113 +1,134 @@
 /**
  * map.js
  * ----------------------------------------------------------------------
- * Owns the Leaflet map instance and every visual layer drawn on it.
- * We intentionally do NOT try to imitate Google Maps styling — the base
- * tile layer is a muted, open CARTO "Positron" layer used only for
- * geographic context (rivers, town blocks outside campus). Everything
+ * Owns the MapLibre GL JS map instance and every visual layer drawn on
+ * it. We intentionally do NOT try to imitate Google Maps styling — the
+ * base raster layer is a muted, open CARTO "Positron" layer used only
+ * for geographic context (rivers, town blocks outside campus). Everything
  * that matters — roads, paths, buildings, gardens, water, parking — is
  * our own original vector layer, styled with the Neermahal palette and
  * driven entirely by the GeoJSON/JSON in /data.
  *
- * Other modules talk to this one through:
+ * Engine notes (migrated from Leaflet → MapLibre GL JS):
+ *   - Line/polygon categories (roads, pathways, waterbodies, parking,
+ *     boundary) are GeoJSON sources + style layers, toggled via
+ *     setLayoutProperty('visibility', ...) instead of Leaflet layer
+ *     groups being added/removed from the map.
+ *   - Point categories (buildings, landmarks, emergency) stay as real
+ *     DOM markers (maplibregl.Marker) so Font Awesome glyphs, GSAP
+ *     entrance/bounce animation and click handling all work exactly as
+ *     before — just swap the icon library and the marker class.
+ *   - Turf.js replaces the hand-rolled bounds/centroid/length math.
+ *   - GSAP drives marker entrance/bounce and an animated "line draw-in"
+ *     for routes (built from turf.lineSliceAlong on every tick).
+ *
+ * Other modules talk to this one through the exact same surface as
+ * before, so ui.js / filters.js / routing.js / search.js needed no
+ * rewrite of their own logic:
  *   - CampusMap.init(data)              → builds the map + layers
- *   - CampusMap.getLayerGroups()        → used by filters.js
+ *   - CampusMap.getLayerGroups()        → used by filters.js (now each
+ *                                          entry exposes .show()/.hide())
  *   - CampusMap.focusOn(lngLat, zoom)   → used by search.js / ui.js
- *   - CampusMap.getMap()                → raw Leaflet instance
+ *   - CampusMap.getMap()                → raw MapLibre GL instance
+ *   - CampusMap.setBaseTheme(mode)      → swaps basemap tiles for dark
  *   - document events: 'campus:buildingSelected', 'campus:markerSelected'
  * ----------------------------------------------------------------------
  */
 (function (global) {
   'use strict';
 
+  const turf = global.turf;
+
   const CAMPUS_CENTER = [23.7612, 91.2660]; // [lat, lng] — Suryamaninagar campus
   const DEFAULT_ZOOM = 16;
 
   let map = null;
   let data = null;
-  const layerGroups = {}; // category -> L.LayerGroup
-  let markersById = {}; // "building-101" -> L.Marker, for programmatic focus
+  const layerGroups = {}; // category -> { show(), hide() } — see makeMarkerGroup/makeStyleLayerGroup
+  let markersById = {}; // "building-101" -> maplibregl.Marker, for programmatic focus
 
-  /** Category → { color, svgIcon } used for markers, chips and the legend.
+  /** Category → { color, faIcon } used for markers, chips and the legend.
    *  Centralizing this means filters.js, search.js and the legend all
    *  render in sync with a single source of truth. */
   const CATEGORY_STYLE = {
-    academic:        { label: 'Academic Buildings',   color: '#1B7A72', icon: iconCap() },
-    library:         { label: 'Library',              color: '#2E6BB0', icon: iconBook() },
-    hostel:          { label: 'Hostels',               color: '#8A4FA6', icon: iconBed() },
-    food:            { label: 'Food & Canteen',        color: '#C9772E', icon: iconCup() },
-    sports:          { label: 'Sports Complex',        color: '#2F8F5B', icon: iconBall() },
-    medical:         { label: 'Medical Centre',        color: '#C4453B', icon: iconCross() },
-    administration:  { label: 'Administration',        color: '#10233A', icon: iconBriefcase() },
-    landmarks:       { label: 'Landmarks',             color: '#C99A3D', icon: iconStar() },
-    parking:         { label: 'Parking',               color: '#4B5259', icon: iconP() },
-    waterbodies:     { label: 'Water Bodies',          color: '#2E6BB0', icon: iconWave() },
-    emergency:       { label: 'Emergency',             color: '#C4453B', icon: iconAlert() },
-    roads:           { label: 'Roads',                 color: '#B8B2A0', icon: null },
-    pathways:        { label: 'Walking Paths',         color: '#C99A3D', icon: null }
+    academic:        { label: 'Academic Buildings',   color: '#1B7A72', faIcon: 'fa-graduation-cap' },
+    library:         { label: 'Library',              color: '#2E6BB0', faIcon: 'fa-book' },
+    hostel:          { label: 'Hostels',               color: '#8A4FA6', faIcon: 'fa-bed' },
+    food:            { label: 'Food & Canteen',        color: '#C9772E', faIcon: 'fa-mug-hot' },
+    sports:          { label: 'Sports Complex',        color: '#2F8F5B', faIcon: 'fa-futbol' },
+    medical:         { label: 'Medical Centre',        color: '#C4453B', faIcon: 'fa-kit-medical' },
+    administration:  { label: 'Administration',        color: '#10233A', faIcon: 'fa-briefcase' },
+    landmarks:       { label: 'Landmarks',             color: '#C99A3D', faIcon: 'fa-star' },
+    parking:         { label: 'Parking',               color: '#4B5259', faIcon: 'fa-square-parking' },
+    waterbodies:     { label: 'Water Bodies',          color: '#2E6BB0', faIcon: 'fa-water' },
+    emergency:       { label: 'Emergency',             color: '#C4453B', faIcon: 'fa-triangle-exclamation' },
+    roads:           { label: 'Roads',                 color: '#B8B2A0', faIcon: null },
+    pathways:        { label: 'Walking Paths',         color: '#C99A3D', faIcon: null }
   };
-
-  // ---- Tiny inline SVG icon library (no external icon font needed) -----
-  function svgWrap(path) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`; }
-  function iconCap() { return svgWrap('<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/>'); }
-  function iconBook() { return svgWrap('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>'); }
-  function iconBed() { return svgWrap('<path d="M2 10v9"/><path d="M2 14h20"/><path d="M22 10v9"/><path d="M4 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M12 10V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'); }
-  function iconCup() { return svgWrap('<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><path d="M6 1v3M10 1v3M14 1v3"/>'); }
-  function iconBall() { return svgWrap('<circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 0 0 20M2 12h20"/>'); }
-  function iconCross() { return svgWrap('<path d="M12 2v20M2 12h20"/>'); }
-  function iconBriefcase() { return svgWrap('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'); }
-  function iconStar() { return svgWrap('<path d="m12 2 3.1 6.9 7.4.9-5.5 5.2 1.5 7.3L12 18.8l-6.5 3.5 1.5-7.3-5.5-5.2 7.4-.9Z"/>'); }
-  function iconP() { return svgWrap('<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 16V8h4a3 3 0 0 1 0 6H9"/>'); }
-  function iconWave() { return svgWrap('<path d="M2 6c1.5-1.5 3.5-1.5 5 0s3.5 1.5 5 0 3.5-1.5 5 0 3.5 1.5 5 0"/><path d="M2 12c1.5-1.5 3.5-1.5 5 0s3.5 1.5 5 0 3.5-1.5 5 0 3.5 1.5 5 0"/><path d="M2 18c1.5-1.5 3.5-1.5 5 0s3.5 1.5 5 0 3.5-1.5 5 0 3.5 1.5 5 0"/>'); }
-  function iconAlert() { return svgWrap('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>'); }
-  function iconGate() { return svgWrap('<path d="M4 22V6l8-3 8 3v16"/><path d="M4 11h16M9 22V11M15 22V11"/>'); }
-  function iconTree() { return svgWrap('<path d="M12 22V13"/><path d="M12 13a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z"/><path d="M12 13a5 5 0 1 1 5-5 5 5 0 0 1-5 5Z"/>'); }
-  function iconBus() { return svgWrap('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M3 12h18M7 21v-2M17 21v-2"/>'); }
-  function iconBank() { return svgWrap('<path d="M3 21h18M4 10h16M12 3l8 5H4Z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8"/>'); }
-  function iconAtm() { return svgWrap('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 10h2v4H7zM11 8h2v6h-2zM15 11h2v3h-2z"/>'); }
-  function iconCycle() { return svgWrap('<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6l-3-9-3 4h6"/>'); }
-  function iconTemple() { return svgWrap('<path d="M12 2l4 4H8Z"/><path d="M4 22V10h16v12"/><path d="M9 22v-6h6v6"/>'); }
-  function iconGarden() { return svgWrap('<path d="M12 22V15"/><circle cx="12" cy="9" r="6"/>'); }
 
   const LANDMARK_ICONS = {
-    gate: iconGate(), tree: iconTree(), busstop: iconBus(), garden: iconGarden(),
-    temple: iconTemple(), bank: iconBank(), atm: iconAtm(), cyclestand: iconCycle()
+    gate: 'fa-door-open', tree: 'fa-tree', busstop: 'fa-bus', garden: 'fa-seedling',
+    temple: 'fa-place-of-worship', bank: 'fa-building-columns', atm: 'fa-credit-card',
+    cyclestand: 'fa-bicycle'
   };
 
-  /** Build a Leaflet divIcon that matches our "campus-marker" CSS class
-   *  (a rotated rounded square, so it reads as a modern map pin without
-   *  reusing any Google/Apple pin silhouette). */
-  function makeDivIcon(color, svg) {
-    return L.divIcon({
-      className: '',
-      html: `<div class="campus-marker" style="background:${color}">${svg || ''}</div>`,
-      iconSize: [24, 24],
-      iconAnchor: [12, 21],
-      popupAnchor: [0, -20]
-    });
-  }
+  const BASEMAP = {
+    light: 'https://{a-d}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+    dark: 'https://{a-d}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+  };
 
   function dispatch(name, detail) {
     document.dispatchEvent(new CustomEvent(name, { detail }));
   }
 
   /** Guards against malformed/missing coordinates in /data (e.g. an
-   *  empty `coordinates: []`). Leaflet throws a hard "Invalid LatLng
-   *  object" exception on bad input, which — unhandled — used to crash
-   *  the whole map init and take down the entire app over a single bad
-   *  point. This lets one bad entry be skipped (with a console warning)
-   *  instead of one typo in /data breaking the site for everyone. */
+   *  empty `coordinates: []`). This lets one bad entry be skipped (with
+   *  a console warning) instead of one typo in /data crashing the whole
+   *  map init and taking down the entire app over a single bad point. */
   function isValidLngLat(coords) {
     return Array.isArray(coords) && coords.length === 2 &&
       Number.isFinite(coords[0]) && Number.isFinite(coords[1]);
   }
 
+  /** Builds the marker DOM for a point: an outer plain wrapper (MapLibre
+   *  writes its own positioning `transform` directly onto whatever
+   *  element you hand its Marker, so that element can't also carry a
+   *  CSS transform of its own) around an inner ".campus-marker" diamond
+   *  that owns the rotate/scale styling and the Font Awesome glyph.
+   *  Returns { wrapper, inner } — `wrapper` goes into maplibregl.Marker,
+   *  `inner` is what CSS/GSAP animate. */
+  function makeMarkerEl(color, faIcon) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'marker-wrapper';
+    const inner = document.createElement('div');
+    inner.className = 'campus-marker';
+    inner.style.background = color;
+    if (faIcon) inner.innerHTML = `<i class="fa-solid ${faIcon}" aria-hidden="true"></i>`;
+    wrapper.appendChild(inner);
+    return { wrapper, inner };
+  }
+
+  function bounceMarker(el) {
+    if (!global.gsap) return;
+    gsap.fromTo(el,
+      { y: 0, rotate: 45 },
+      { y: -14, rotate: 45, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1, onComplete: () => gsap.set(el, { clearProps: 'transform' }) }
+    );
+  }
+
+  /** Staggered "drop in" for a freshly-added group of markers, so the
+   *  campus feels assembled rather than dumped on screen at once. */
+  function animateMarkersIn(elements) {
+    if (!global.gsap || !elements.length) return;
+    gsap.fromTo(elements,
+      { opacity: 0, scale: 0.3, y: -10 },
+      { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.9)', stagger: 0.015, onComplete: () => gsap.set(elements, { clearProps: 'transform,opacity' }) }
+    );
+  }
+
   /** Renders a compact popup for any feature, with an optional primary
    *  CTA (e.g. "View details", hands off to ui.js for the full drawer)
-   *  and an optional "Directions" button that routes the person here —
-   *  including via the road network when that's the shorter/only way in,
-   *  which matters most for parking lots and gates that sit on roads
-   *  rather than footpaths. */
+   *  and an optional "Directions" button that routes the person here. */
   function popupHTML(title, subtitle, ctaLabel, directionsCoord) {
     return `<div class="map-popup">
       <h4>${CampusHelpers.escapeHTML(title)}</h4>
@@ -122,157 +143,197 @@
   /** Wires the optional "Directions" button in a popup (see popupHTML)
    *  to the same route-panel flow the building drawer's Directions
    *  button uses, so ui.js has one code path for "route me here". */
-  function bindDirectionsCta(marker, coord, label) {
-    marker.on('popupopen', (e) => {
-      e.popup._contentNode?.querySelector('.popup-directions')?.addEventListener('click', () => {
-        dispatch('campus:routeToRequested', { coord, label });
-        marker.closePopup();
-      });
+  function bindPopupActions(popup, { onCta, directionsCoord, directionsLabel } = {}) {
+    popup.on('open', () => {
+      const node = popup.getElement();
+      if (onCta) node.querySelector('.popup-cta')?.addEventListener('click', () => { onCta(); popup.remove(); });
+      if (directionsCoord) {
+        node.querySelector('.popup-directions')?.addEventListener('click', () => {
+          dispatch('campus:routeToRequested', { coord: directionsCoord, label: directionsLabel });
+          popup.remove();
+        });
+      }
     });
   }
 
+  /** Wraps a set of point markers as one filterable "layer group" so
+   *  filters.js can call .show()/.hide() exactly like it used to call
+   *  map.addLayer()/map.removeLayer() on a Leaflet LayerGroup. */
+  function makeMarkerGroup(markers) {
+    let visible = true;
+    return {
+      markers,
+      show() { if (visible) return; visible = true; markers.forEach((m) => m.addTo(map)); },
+      hide() { if (!visible) return; visible = false; markers.forEach((m) => m.remove()); }
+    };
+  }
+
+  /** Same idea for GeoJSON-backed style layers (roads, pathways, water,
+   *  parking, boundary): toggling paint/layout visibility instead of
+   *  detaching a Leaflet layer group. */
+  function makeStyleLayerGroup(layerIds) {
+    let visible = true;
+    return {
+      layerIds,
+      show() { if (visible) return; visible = true; layerIds.forEach((id) => map.setLayoutProperty(id, 'visibility', 'visible')); },
+      hide() { if (!visible) return; visible = false; layerIds.forEach((id) => map.setLayoutProperty(id, 'visibility', 'none')); }
+    };
+  }
+
+  function addSource(id, geojson) {
+    map.addSource(id, { type: 'geojson', data: geojson });
+  }
+
   function addBuildingsLayer() {
-    const groups = {};
+    const markers = [];
+    const byCategory = {};
     data.buildings.forEach((b) => {
       if (!isValidLngLat(b.coordinates)) {
         console.warn('Skipping building with invalid coordinates:', b.name || b.id);
         return;
       }
       const style = CATEGORY_STYLE[b.category] || CATEGORY_STYLE.academic;
-      const marker = L.marker([b.coordinates[1], b.coordinates[0]], {
-        icon: makeDivIcon(style.color, style.icon),
-        keyboard: true,
-        alt: b.name
+      const { wrapper, inner } = makeMarkerEl(style.color, style.faIcon);
+      const popup = new maplibregl.Popup({ offset: 20, closeButton: false, maxWidth: '260px' })
+        .setHTML(popupHTML(b.name, `${b.buildingNumber} · ${style.label}`, 'View details'));
+      bindPopupActions(popup, { onCta: () => dispatch('campus:buildingSelected', { building: b }) });
+
+      const marker = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
+        .setLngLat(b.coordinates)
+        .setPopup(popup)
+        .addTo(map);
+
+      inner.setAttribute('tabindex', '0');
+      inner.setAttribute('role', 'button');
+      inner.setAttribute('aria-label', b.name);
+      inner.addEventListener('click', () => bounceMarker(inner));
+      inner.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') dispatch('campus:buildingSelected', { building: b });
       });
-      marker.bindPopup(popupHTML(b.name, `${b.buildingNumber} · ${style.label}`, 'View details'));
-      marker.on('popupopen', (e) => {
-        e.popup._contentNode?.querySelector('.popup-cta')?.addEventListener('click', () => {
-          dispatch('campus:buildingSelected', { building: b });
-          marker.closePopup();
-        });
-      });
-      marker.on('click', () => bounceMarker(marker));
-      marker.on('keypress', (e) => {
-        if (e.originalEvent.key === 'Enter') dispatch('campus:buildingSelected', { building: b });
-      });
+
       marker.buildingId = b.id;
       markersById[`building-${b.id}`] = marker;
-
-      const group = groups[b.category] || (groups[b.category] = L.layerGroup());
-      group.addLayer(marker);
+      markers.push(marker);
+      (byCategory[b.category] = byCategory[b.category] || []).push(marker);
     });
-    Object.entries(groups).forEach(([cat, group]) => {
-      layerGroups[cat] = group;
-      group.addTo(map);
-    });
-  }
-
-  function bounceMarker(marker) {
-    const el = marker.getElement()?.querySelector('.campus-marker');
-    if (!el) return;
-    el.classList.remove('bounce');
-    // eslint-disable-next-line no-unused-expressions
-    void el.offsetWidth; // restart animation
-    el.classList.add('bounce');
+    // Buildings span several categories (academic/library/hostel/food/...);
+    // group per-category so filter chips still control each independently.
+    Object.entries(byCategory).forEach(([cat, list]) => { layerGroups[cat] = makeMarkerGroup(list); });
+    animateMarkersIn(markers.map((m) => m.getElement().firstElementChild));
   }
 
   function addLandmarksLayer() {
-    const group = L.layerGroup();
+    const markers = [];
     data.geo.landmarks.features.forEach((f) => {
       if (!isValidLngLat(f.geometry?.coordinates)) {
         console.warn('Skipping landmark with invalid coordinates:', f.properties?.name);
         return;
       }
-      const [lng, lat] = f.geometry.coordinates;
-      const svg = LANDMARK_ICONS[f.properties.type] || iconStar();
-      const marker = L.marker([lat, lng], { icon: makeDivIcon(CATEGORY_STYLE.landmarks.color, svg), alt: f.properties.name });
-      marker.bindPopup(popupHTML(f.properties.name, f.properties.description, null, f.geometry.coordinates));
-      bindDirectionsCta(marker, f.geometry.coordinates, f.properties.name);
-      marker.on('click', () => bounceMarker(marker));
-      group.addLayer(marker);
+      const faIcon = LANDMARK_ICONS[f.properties.type] || 'fa-star';
+      const { wrapper, inner } = makeMarkerEl(CATEGORY_STYLE.landmarks.color, faIcon);
+      const popup = new maplibregl.Popup({ offset: 20, closeButton: false, maxWidth: '260px' })
+        .setHTML(popupHTML(f.properties.name, f.properties.description, null, f.geometry.coordinates));
+      bindPopupActions(popup, { directionsCoord: f.geometry.coordinates, directionsLabel: f.properties.name });
+
+      const marker = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
+        .setLngLat(f.geometry.coordinates)
+        .setPopup(popup)
+        .addTo(map);
+      inner.addEventListener('click', () => bounceMarker(inner));
+
       markersById[`landmark-${f.properties.name}`] = marker;
+      markers.push(marker);
     });
-    layerGroups.landmarks = group;
-    group.addTo(map);
+    layerGroups.landmarks = makeMarkerGroup(markers);
+    animateMarkersIn(markers.map((m) => m.getElement().firstElementChild));
   }
 
   function addEmergencyLayer() {
-    const group = L.layerGroup();
+    const markers = [];
     data.geo.emergency.features.forEach((f) => {
       if (!isValidLngLat(f.geometry?.coordinates)) {
         console.warn('Skipping emergency point with invalid coordinates:', f.properties?.name);
         return;
       }
-      const [lng, lat] = f.geometry.coordinates;
-      const marker = L.marker([lat, lng], { icon: makeDivIcon(CATEGORY_STYLE.emergency.color, iconAlert()), alt: f.properties.name });
+      const { wrapper, inner } = makeMarkerEl(CATEGORY_STYLE.emergency.color, CATEGORY_STYLE.emergency.faIcon);
       const subtitle = f.properties.contact ? `Contact: ${f.properties.contact}` : '';
-      marker.bindPopup(popupHTML(f.properties.name, subtitle, null, f.geometry.coordinates));
-      bindDirectionsCta(marker, f.geometry.coordinates, f.properties.name);
-      group.addLayer(marker);
+      const popup = new maplibregl.Popup({ offset: 20, closeButton: false, maxWidth: '260px' })
+        .setHTML(popupHTML(f.properties.name, subtitle, null, f.geometry.coordinates));
+      bindPopupActions(popup, { directionsCoord: f.geometry.coordinates, directionsLabel: f.properties.name });
+
+      const marker = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
+        .setLngLat(f.geometry.coordinates)
+        .setPopup(popup)
+        .addTo(map);
+      inner.addEventListener('click', () => bounceMarker(inner));
+      markers.push(marker);
     });
-    layerGroups.emergency = group;
-    group.addTo(map);
+    layerGroups.emergency = makeMarkerGroup(markers);
+    animateMarkersIn(markers.map((m) => m.getElement().firstElementChild));
   }
 
   function addParkingLayer() {
-    const group = L.layerGroup();
+    addSource('parking-src', data.geo.parking);
+    map.addLayer({ id: 'parking-fill', type: 'fill', source: 'parking-src', paint: { 'fill-color': CATEGORY_STYLE.parking.color, 'fill-opacity': 0.25 } });
+    map.addLayer({ id: 'parking-line', type: 'line', source: 'parking-src', paint: { 'line-color': CATEGORY_STYLE.parking.color, 'line-width': 1, 'line-dasharray': [4, 3] } });
+
     data.geo.parking.features.forEach((f) => {
-      const layer = L.geoJSON(f, {
-        style: { color: CATEGORY_STYLE.parking.color, weight: 1, fillOpacity: 0.25, dashArray: '4 3' }
+      const centroid = turf ? turf.centroid(f).geometry.coordinates : CampusHelpers.polygonCentroid(f.geometry);
+      if (!centroid) return;
+      const popup = new maplibregl.Popup({ offset: 8, closeButton: false, maxWidth: '260px' })
+        .setLngLat(centroid)
+        .setHTML(popupHTML(f.properties.name, `Capacity: ${f.properties.capacity || 'N/A'}`, null, centroid));
+      bindPopupActions(popup, { directionsCoord: centroid, directionsLabel: f.properties.name });
+      map.on('click', 'parking-fill', (e) => {
+        if (!turf || !turf.booleanPointInPolygon(turf.point([e.lngLat.lng, e.lngLat.lat]), f)) return;
+        popup.addTo(map);
       });
-      const centroid = CampusHelpers.polygonCentroid(f.geometry);
-      layer.bindPopup(popupHTML(f.properties.name, `Capacity: ${f.properties.capacity || 'N/A'}`, null, centroid));
-      if (centroid) bindDirectionsCta(layer, centroid, f.properties.name);
-      group.addLayer(layer);
     });
-    layerGroups.parking = group;
-    group.addTo(map);
+    map.on('mouseenter', 'parking-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'parking-fill', () => { map.getCanvas().style.cursor = ''; });
+
+    layerGroups.parking = makeStyleLayerGroup(['parking-fill', 'parking-line']);
   }
 
   function addWaterbodiesLayer() {
-    const group = L.layerGroup();
-    data.geo.waterbodies.features.forEach((f) => {
-      const layer = L.geoJSON(f, { style: { color: '#2E6BB0', weight: 1, fillColor: '#6FB4D8', fillOpacity: 0.45 } });
-      layer.bindPopup(popupHTML(f.properties.name, f.properties.description));
-      group.addLayer(layer);
-    });
-    layerGroups.waterbodies = group;
-    group.addTo(map);
+    addSource('waterbodies-src', data.geo.waterbodies);
+    map.addLayer({ id: 'waterbodies-fill', type: 'fill', source: 'waterbodies-src', paint: { 'fill-color': '#6FB4D8', 'fill-opacity': 0.45 } });
+    map.addLayer({ id: 'waterbodies-line', type: 'line', source: 'waterbodies-src', paint: { 'line-color': '#2E6BB0', 'line-width': 1 } });
+    layerGroups.waterbodies = makeStyleLayerGroup(['waterbodies-fill', 'waterbodies-line']);
   }
 
-  const roadLayerRefs = []; // individual L.geoJSON layers, for live recoloring
-
   function addRoadsLayer() {
-    const group = L.layerGroup();
-    roadLayerRefs.length = 0;
-    data.geo.roads.features.forEach((f) => {
-      const isMain = f.properties.roadType === 'main';
-      const layer = L.geoJSON(f, {
-        style: { color: CATEGORY_STYLE.roads.color, weight: isMain ? 6 : 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
-      });
-      roadLayerRefs.push(layer);
-      group.addLayer(layer);
+    addSource('roads-src', data.geo.roads);
+    map.addLayer({
+      id: 'roads-line',
+      type: 'line',
+      source: 'roads-src',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': CATEGORY_STYLE.roads.color,
+        'line-width': ['case', ['==', ['get', 'roadType'], 'main'], 6, 4],
+        'line-opacity': 0.9
+      }
     });
-    layerGroups.roads = group;
-    group.addTo(map);
+    layerGroups.roads = makeStyleLayerGroup(['roads-line']);
   }
 
   /** Live-recolor all road segments (e.g. from a legend color picker). */
   function setRoadColor(color) {
     CATEGORY_STYLE.roads.color = color;
-    roadLayerRefs.forEach((layer) => layer.setStyle({ color }));
+    if (map.getLayer('roads-line')) map.setPaintProperty('roads-line', 'line-color', color);
   }
 
   function addPathwaysLayer() {
-    const group = L.layerGroup();
-    data.geo.pathways.features.forEach((f) => {
-      const layer = L.geoJSON(f, {
-        style: { color: '#C99A3D', weight: 3, opacity: 0.55, dashArray: '1 8', lineCap: 'round', lineJoin: 'round' }
-      });
-      group.addLayer(layer);
+    addSource('pathways-src', data.geo.pathways);
+    map.addLayer({
+      id: 'pathways-line',
+      type: 'line',
+      source: 'pathways-src',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#C99A3D', 'line-width': 3, 'line-opacity': 0.55, 'line-dasharray': [1, 3] }
     });
-    layerGroups.pathways = group;
-    group.addTo(map);
+    layerGroups.pathways = makeStyleLayerGroup(['pathways-line']);
   }
 
   /** Campus outer boundary — a dotted, non-interactive outline drawn from
@@ -282,131 +343,204 @@
    *  since it's a fixed reference line, not a category of places. */
   function addBoundaryLayer() {
     const fc = data.geo.boundary;
-    if (!fc || !fc.features || !fc.features.length) return null;
-    const group = L.layerGroup();
-    fc.features.forEach((f) => {
-      const layer = L.geoJSON(f, {
-        interactive: false,
-        style: {
-          color: '#10233A',
-          weight: 2,
-          opacity: 0.55,
-          fill: false,
-          dashArray: '2 10',
-          lineCap: 'round',
-          lineJoin: 'round'
-        }
-      });
-      group.addLayer(layer);
+    if (!fc || !fc.features || !fc.features.length) return;
+    addSource('boundary-src', fc);
+    map.addLayer({
+      id: 'boundary-line',
+      type: 'line',
+      source: 'boundary-src',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#10233A', 'line-width': 2, 'line-opacity': 0.55, 'line-dasharray': [2, 5] }
     });
-    layerGroups.boundary = group;
-    group.addTo(map);
-    return group;
   }
 
   /** Combines the boundary polygon with every building/landmark coordinate
-   *  into one LatLngBounds. Used so the initial view — and how far the
-   *  map is allowed to pan — always includes everything in /data, instead
-   *  of a hardcoded center/zoom that newly added buildings can fall
-   *  outside of. */
+   *  into one bounding box (via Turf), so the initial view — and how far
+   *  the map is allowed to pan — always includes everything in /data,
+   *  instead of a hardcoded center/zoom that newly added buildings can
+   *  fall outside of. */
   function computeContentBounds() {
     const points = [];
     const boundaryFC = data.geo.boundary;
     if (boundaryFC && boundaryFC.features) {
       boundaryFC.features.forEach((f) => {
         const rings = f.geometry.type === 'Polygon' ? f.geometry.coordinates : [];
-        rings.forEach((ring) => ring.forEach(([lng, lat]) => points.push([lat, lng])));
+        rings.forEach((ring) => ring.forEach((pt) => points.push(pt)));
       });
     }
-    (data.buildings || []).forEach((b) => points.push([b.coordinates[1], b.coordinates[0]]));
+    (data.buildings || []).forEach((b) => { if (isValidLngLat(b.coordinates)) points.push(b.coordinates); });
     (data.geo.landmarks?.features || []).forEach((f) => {
-      const [lng, lat] = f.geometry.coordinates;
-      points.push([lat, lng]);
+      if (isValidLngLat(f.geometry?.coordinates)) points.push(f.geometry.coordinates);
     });
-    if (!points.length) return L.latLngBounds([CAMPUS_CENTER]);
-    return L.latLngBounds(points);
+    if (!points.length) return [[CAMPUS_CENTER[1] - 0.01, CAMPUS_CENTER[0] - 0.01], [CAMPUS_CENTER[1] + 0.01, CAMPUS_CENTER[0] + 0.01]];
+    if (turf) {
+      const fc = turf.featureCollection(points.map((p) => turf.point(p)));
+      const [minX, minY, maxX, maxY] = turf.bbox(fc);
+      return [[minX, minY], [maxX, maxY]];
+    }
+    const lngs = points.map((p) => p[0]);
+    const lats = points.map((p) => p[1]);
+    return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
   }
 
-  let routeLayer = null;
-  /** Draws (or clears, if coords is null) the active route as an
-   *  animated dashed polyline plus start/end flags. */
-  function drawRoute(coordsLatLng, options = {}) {
-    if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-    if (!coordsLatLng || !coordsLatLng.length) return;
+  /** Pads a [[minLng,minLat],[maxLng,maxLat]] box by a fraction of its
+   *  own size — a stand-in for Leaflet's bounds.pad(). */
+  function padBounds(bounds, fraction) {
+    const [[minX, minY], [maxX, maxY]] = bounds;
+    const padX = (maxX - minX) * fraction || 0.01;
+    const padY = (maxY - minY) * fraction || 0.01;
+    return [[minX - padX, minY - padY], [maxX + padX, maxY + padY]];
+  }
 
-    routeLayer = L.layerGroup();
-    const line = L.polyline(coordsLatLng, {
-      color: options.color || '#1B7A72',
-      weight: 5,
-      opacity: 0.95,
-      dashArray: '1 10',
-      lineCap: 'round',
-      className: 'route-line-animated'
+  let routeTween = null;
+  /** Draws (or clears, if coords is null) the active route as a line
+   *  that animates its way in with GSAP, using turf.lineSliceAlong to
+   *  compute how much of the path should be visible on every tick —
+   *  plus start/end flag dots, same as the old Leaflet version. */
+  function drawRoute(coordsLngLat, options = {}) {
+    if (routeTween) { routeTween.kill(); routeTween = null; }
+    clearRoute();
+    if (!coordsLngLat || coordsLngLat.length < 2) return;
+
+    const color = options.color || '#1B7A72';
+    const fullLine = turf ? turf.lineString(coordsLngLat) : { type: 'Feature', geometry: { type: 'LineString', coordinates: coordsLngLat } };
+    const fullLength = turf ? turf.length(fullLine, { units: 'kilometers' }) : 0;
+
+    addSource('route-src', { type: 'FeatureCollection', features: [] });
+    map.addLayer({
+      id: 'route-line',
+      type: 'line',
+      source: 'route-src',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': color, 'line-width': 5, 'line-opacity': 0.95, 'line-dasharray': [1, 3] }
     });
-    routeLayer.addLayer(line);
+    addSource('route-flags-src', {
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { role: 'start' }, geometry: { type: 'Point', coordinates: coordsLngLat[0] } },
+        { type: 'Feature', properties: { role: 'end' }, geometry: { type: 'Point', coordinates: coordsLngLat[coordsLngLat.length - 1] } }
+      ]
+    });
+    map.addLayer({
+      id: 'route-flags',
+      type: 'circle',
+      source: 'route-flags-src',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': ['match', ['get', 'role'], 'start', color, 'end', '#C4453B', color],
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 2
+      }
+    });
 
-    const start = coordsLatLng[0];
-    const end = coordsLatLng[coordsLatLng.length - 1];
-    routeLayer.addLayer(L.circleMarker(start, { radius: 7, color: '#fff', weight: 2, fillColor: '#1B7A72', fillOpacity: 1 }));
-    routeLayer.addLayer(L.circleMarker(end, { radius: 7, color: '#fff', weight: 2, fillColor: '#C4453B', fillOpacity: 1 }));
+    const setProgress = (t) => {
+      const src = map.getSource('route-src');
+      if (!src) return;
+      const partial = (!turf || t >= 1)
+        ? fullLine
+        : turf.lineSliceAlong(fullLine, 0, Math.max(fullLength * t, 0.0001), { units: 'kilometers' });
+      src.setData({ type: 'FeatureCollection', features: [partial] });
+    };
 
-    routeLayer.addTo(map);
-    map.fitBounds(L.latLngBounds(coordsLatLng), { padding: [80, 80] });
+    if (global.gsap) {
+      const progress = { t: 0 };
+      routeTween = gsap.to(progress, { t: 1, duration: 0.9, ease: 'power1.inOut', onUpdate: () => setProgress(progress.t) });
+    } else {
+      setProgress(1);
+    }
+
+    const bounds = coordsLngLat.reduce(
+      (b, c) => [[Math.min(b[0][0], c[0]), Math.min(b[0][1], c[1])], [Math.max(b[1][0], c[0]), Math.max(b[1][1], c[1])]],
+      [[coordsLngLat[0][0], coordsLngLat[0][1]], [coordsLngLat[0][0], coordsLngLat[0][1]]]
+    );
+    map.fitBounds(bounds, { padding: 80, duration: 700 });
+  }
+
+  function clearRoute() {
+    ['route-line', 'route-flags'].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
+    ['route-src', 'route-flags-src'].forEach((id) => { if (map.getSource(id)) map.removeSource(id); });
   }
 
   function focusOn(lngLat, zoom = 18) {
-    map.flyTo([lngLat[1], lngLat[0]], zoom, { duration: 0.9 });
+    map.flyTo({ center: lngLat, zoom, duration: 900 });
   }
 
   function focusMarker(key) {
     const marker = markersById[key];
     if (!marker) return;
-    map.flyTo(marker.getLatLng(), 18, { duration: 0.9 });
-    setTimeout(() => marker.openPopup(), 500);
+    const lngLat = marker.getLngLat();
+    map.flyTo({ center: lngLat, zoom: 18, duration: 900 });
+    setTimeout(() => marker.togglePopup(), 500);
+  }
+
+  /** Swaps the basemap raster tiles between the light and dark CARTO
+   *  layers. Replaces the old CSS invert-filter trick: MapLibre GL
+   *  renders our own vector layers on the same WebGL canvas as the
+   *  basemap, so there's no separate "tile pane" left to filter — a
+   *  matching dark tileset is the correct fix instead. */
+  function setBaseTheme(mode) {
+    if (!map || !map.getSource('basemap-src')) return;
+    map.getSource('basemap-src').setTiles([mode === 'dark' ? BASEMAP.dark : BASEMAP.light]);
   }
 
   function init(loadedData) {
     data = loadedData;
 
-    map = L.map('map-canvas', {
-      center: CAMPUS_CENTER,
+    map = new maplibregl.Map({
+      container: 'map-canvas',
+      style: {
+        version: 8,
+        sources: {},
+        layers: [],
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+      },
+      center: [CAMPUS_CENTER[1], CAMPUS_CENTER[0]],
       zoom: DEFAULT_ZOOM,
-      zoomControl: false, // custom zoom-stack UI instead
-      attributionControl: true,
       minZoom: 14,
       maxZoom: 20,
-      maxBoundsViscosity: 0.6
+      pitchWithRotate: false, // flat 2D only: no tilt/rotate gestures
+      dragRotate: false,
+      touchZoomRotate: true,
+      attributionControl: { compact: true }
     });
+    map.touchZoomRotate?.disableRotation();
 
-    // Muted, open basemap used only for surrounding geographic context.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 20
-    }).addTo(map);
+    const ready = new Promise((resolve) => {
+      map.on('load', () => {
+        // Muted, open basemap used only for surrounding geographic context.
+        map.addSource('basemap-src', {
+          type: 'raster',
+          tiles: [document.documentElement.getAttribute('data-theme') === 'dark' ? BASEMAP.dark : BASEMAP.light],
+          tileSize: 256,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        });
+        map.addLayer({ id: 'basemap', type: 'raster', source: 'basemap-src' });
 
-    addBoundaryLayer();
-    addRoadsLayer();
-    addPathwaysLayer();
-    addWaterbodiesLayer();
-    addParkingLayer();
-    addBuildingsLayer();
-    addLandmarksLayer();
-    addEmergencyLayer();
+        addBoundaryLayer();
+        addRoadsLayer();
+        addPathwaysLayer();
+        addWaterbodiesLayer();
+        addParkingLayer();
+        addBuildingsLayer();
+        addLandmarksLayer();
+        addEmergencyLayer();
 
-    // Fit the initial view — and cap how far the map can be panned — to
-    // whatever is actually in /data (boundary + buildings + landmarks)
-    // instead of a hardcoded center/zoom. This is what stops a newly
-    // added building from ending up outside the visible/pannable map:
-    // these bounds are recalculated from the live data on every load, so
-    // the map always grows to fit everything you've added to /data.
-    const contentBounds = computeContentBounds();
-    map.fitBounds(contentBounds.pad(0.12));
-    map.setMaxBounds(contentBounds.pad(0.35));
+        // Fit the initial view — and cap how far the map can be panned — to
+        // whatever is actually in /data (boundary + buildings + landmarks)
+        // instead of a hardcoded center/zoom. Recomputed from the live data
+        // on every load, so the map always grows to fit whatever's in /data.
+        const contentBounds = computeContentBounds();
+        map.fitBounds(padBounds(contentBounds, 0.12), { animate: false });
+        map.setMaxBounds(padBounds(contentBounds, 0.35));
+
+        dispatch('campus:mapReady', {});
+        resolve(map);
+      });
+    });
 
     map.on('moveend', () => dispatch('campus:mapMoved', { center: map.getCenter(), zoom: map.getZoom() }));
 
-    return map;
+    return ready;
   }
 
   global.CampusMap = {
@@ -418,6 +552,7 @@
     focusMarker,
     drawRoute,
     setRoadColor,
+    setBaseTheme,
     computeContentBounds,
     CAMPUS_CENTER
   };
