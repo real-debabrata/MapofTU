@@ -301,6 +301,21 @@ a { color: inherit; }
 .zoom-stack button:last-child { border-bottom: none; }
 .zoom-stack button:hover { background: rgba(27,122,114,0.10); }
 
+.btn-compass {
+  --bearing: 0deg;
+  width: 42px; height: 40px; border: 1px solid var(--glass-border); cursor: pointer;
+  color: var(--gold-neermahal); display: grid; place-items: center;
+  background: var(--glass-bg); backdrop-filter: blur(14px) saturate(160%);
+  border-radius: var(--r-md); box-shadow: var(--shadow-sm);
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.btn-compass:hover { background: rgba(27,122,114,0.10); }
+.btn-compass.is-active { color: var(--teal-monsoon); }
+.btn-compass__needle {
+  transform: rotate(var(--bearing));
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+
 /* ---------- Floating Action Button -------------------------------------- */
 .fab {
   position: absolute; right: 18px; bottom: 24px; z-index: 850;
@@ -572,21 +587,50 @@ a { color: inherit; }
    makeMarkerEl in map.js — with the actual ".campus-marker" visual as a
    child instead). */
 .marker-wrapper { display: inline-block; line-height: 0; }
+/* Glossy 3D pin: a radial highlight + a deep drop shadow underneath the
+   flat color read as a raised, lit-from-above teardrop, the way Google/
+   Apple Maps pins do — no map tilt required, purely a marker-level effect. */
 .campus-marker {
   display: grid; place-items: center;
   width: 24px; height: 24px; border-radius: 50% 50% 50% 4px;
   transform: rotate(45deg);
-  box-shadow: var(--shadow-sm);
+  background-image: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0) 55%);
+  background-blend-mode: overlay;
+  box-shadow: var(--shadow-md), inset 0 -3px 4px rgba(0,0,0,0.25), inset 0 2px 2px rgba(255,255,255,0.35);
   border: 1.5px solid #fff;
   cursor: pointer;
   transition: transform var(--dur-fast) var(--ease-emphasized);
 }
-.campus-marker i { transform: rotate(-45deg); font-size: 11px; color: #fff; }
+.campus-marker i { transform: rotate(-45deg); font-size: 11px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.3); }
 .campus-marker:hover { transform: rotate(45deg) scale(1.14); }
 
+/* Building markers: an isometric 3D block drawn on a canvas (see
+   makeBuildingMarkerEl in map.js) rather than the pin shape above — so
+   they rest flat (no 45deg baseline) and just scale/lift on interaction. */
+.campus-marker--building {
+  width: 34px; height: 40px; border-radius: 0;
+  background-color: transparent; background-repeat: no-repeat; background-position: bottom center;
+  background-size: contain; background-image: none; /* overridden inline per-marker */
+  box-shadow: none; border: none; transform: none;
+}
+.campus-marker--building:hover { transform: scale(1.12) translateY(-2px); }
+
+/* "You are here" — a glossy 3D sphere with a soft breathing halo. */
 .locate-dot {
+  position: relative;
   width: 16px; height: 16px; border-radius: 50%;
-  background: #2E6BB0; border: 2px solid #fff; box-shadow: var(--shadow-sm);
+  background: radial-gradient(circle at 34% 30%, #8FC7EE 0%, #2E6BB0 55%, #1B4E7A 100%);
+  border: 2px solid #fff;
+  box-shadow: var(--shadow-md), inset 0 -2px 3px rgba(0,0,0,0.3);
+}
+.locate-dot::after {
+  content: ''; position: absolute; inset: -10px; border-radius: 50%;
+  background: rgba(46,107,176,0.35);
+  animation: locate-pulse 2.2s ease-out infinite;
+}
+@keyframes locate-pulse {
+  0% { transform: scale(0.4); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 .maplibregl-popup-content {
