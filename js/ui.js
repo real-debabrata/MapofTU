@@ -478,10 +478,19 @@
     dom.zoomIn.addEventListener('click', () => map.zoomIn());
     dom.zoomOut.addEventListener('click', () => map.zoomOut());
 
-    // The map is intentionally flat 2D only: no compass rotation, no 3D
-    // tilt, and no two-finger rotate/tilt gesture (disabled in map.js's
-    // init: dragRotate/pitchWithRotate off, touch rotation disabled).
-    // Single-finger pan and pinch-to-zoom are left completely untouched.
+    // The map itself is flat 2D — it never tilts (maxPitch locked to 0 in
+    // map.js) — but it IS rotatable: right-click/two-finger drag turns the
+    // bearing. This compass button just points the way back to north; the
+    // needle spins live to match whatever bearing the map is currently at.
+    if (dom.resetNorth) {
+      dom.resetNorth.addEventListener('click', () => CampusMap.resetNorth());
+      const syncNeedle = (bearing) => {
+        dom.resetNorth.style.setProperty('--bearing', `${-bearing}deg`);
+        dom.resetNorth.classList.toggle('is-active', Math.abs(bearing % 360) > 0.5);
+      };
+      CampusMap.onRotate(syncNeedle);
+      syncNeedle(CampusMap.getBearing());
+    }
 
     map.on('moveend', () => {
       const center = map.getCenter();
@@ -518,6 +527,7 @@
       fab: document.getElementById('fab-locate'),
       zoomIn: document.getElementById('zoom-in'),
       zoomOut: document.getElementById('zoom-out'),
+      resetNorth: document.getElementById('reset-north'),
       recenterBtn: document.getElementById('recenter-btn'),
       routeToggle: document.getElementById('route-toggle'),
       filterReset: document.getElementById('filter-reset'),

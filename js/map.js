@@ -108,11 +108,94 @@
     return { wrapper, inner };
   }
 
-  function bounceMarker(el) {
+  /** Draws a small isometric 3D building block (top + two shaded side
+   *  faces, plus a soft ground shadow) and caches it as a data URL per
+   *  color/floor-height combo. Used instead of a flat pin for building
+   *  markers, so buildings read as little 3D blocks — like the hand-
+   *  drawn pictograms on the reference guide map — while the map itself
+   *  stays perfectly flat underneath. */
+  const buildingIconCache = {};
+  function shadeColor(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (n >> 16) + amt));
+    const g = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + amt));
+    const b = Math.max(0, Math.min(255, (n & 0xff) + amt));
+    return `rgb(${r},${g},${b})`;
+  }
+  function buildingIconURL(color, floors) {
+    const bucket = floors >= 5 ? 'tall' : floors >= 3 ? 'mid' : 'low';
+    const key = `${color}|${bucket}`;
+    if (buildingIconCache[key]) return buildingIconCache[key];
+
+    const w = 34, h = 40;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const blockH = bucket === 'tall' ? 20 : bucket === 'mid' ? 15 : 11;
+    const baseY = h - 8;
+    const topW = 18, topD = 8; // top-face footprint (width, isometric depth)
+    const cx = w / 2;
+
+    // Ground shadow
+    ctx.beginPath();
+    ctx.ellipse(cx, baseY + 3, 12, 3.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(16,35,58,0.22)';
+    ctx.fill();
+
+    const left = cx - topW / 2, right = cx + topW / 2;
+    const topY = baseY - blockH;
+
+    // Front face
+    ctx.fillStyle = shadeColor(color, -25);
+    ctx.fillRect(left, topY + topD / 2, topW, blockH);
+    // Right/side face (parallelogram)
+    ctx.beginPath();
+    ctx.moveTo(right, topY + topD / 2);
+    ctx.lineTo(right + topD, topY);
+    ctx.lineTo(right + topD, topY + blockH - topD / 2);
+    ctx.lineTo(right, topY + blockH + topD / 2);
+    ctx.closePath();
+    ctx.fillStyle = shadeColor(color, -50);
+    ctx.fill();
+    // Top face (parallelogram)
+    ctx.beginPath();
+    ctx.moveTo(left, topY + topD / 2);
+    ctx.lineTo(left + topD, topY);
+    ctx.lineTo(right + topD, topY);
+    ctx.lineTo(right, topY + topD / 2);
+    ctx.closePath();
+    ctx.fillStyle = shadeColor(color, 35);
+    ctx.fill();
+    // Crisp edges
+    ctx.strokeStyle = 'rgba(16,35,58,0.35)';
+    ctx.lineWidth = 0.75;
+    ctx.stroke();
+    ctx.strokeRect(left, topY + topD / 2, topW, blockH);
+
+    const url = canvas.toDataURL('image/png');
+    buildingIconCache[key] = url;
+    return url;
+  }
+
+  /** Same wrapper/inner contract as makeMarkerEl, but the inner element
+   *  is a plain image of the isometric block above instead of the CSS
+   *  pin diamond — buildings get a 3D look, the flat map underneath
+   *  doesn't have to tilt for it to read that way. */
+  function makeBuildingMarkerEl(color, floors) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'marker-wrapper';
+    const inner = document.createElement('div');
+    inner.className = 'campus-marker campus-marker--building';
+    inner.style.backgroundImage = `url(${buildingIconURL(color, Number(floors) || 2)})`;
+    wrapper.appendChild(inner);
+    return { wrapper, inner };
+  }
+
+  function bounceMarker(el, baseRotate = 45) {
     if (!global.gsap) return;
     gsap.fromTo(el,
-      { y: 0, rotate: 45 },
-      { y: -14, rotate: 45, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1, onComplete: () => gsap.set(el, { clearProps: 'transform' }) }
+      { y: 0, rotate: baseRotate },
+      { y: -14, rotate: baseRotate, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1, onComplete: () => gsap.set(el, { clearProps: 'transform' }) }
     );
   }
 
@@ -193,8 +276,8 @@
         return;
       }
       const style = CATEGORY_STYLE[b.category] || CATEGORY_STYLE.academic;
-      const { wrapper, inner } = makeMarkerEl(style.color, style.faIcon);
-      const popup = new maplibregl.Popup({ offset: 20, closeButton: false, maxWidth: '260px' })
+      const { wrapper, inner } = makeBuildingMarkerEl(style.color, b.floors);
+      const popup = new maplibregl.Popup({ offset: 26, closeButton: false, maxWidth: '260px' })
         .setHTML(popupHTML(b.name, `${b.buildingNumber} · ${style.label}`, 'View details'));
       bindPopupActions(popup, { onCta: () => dispatch('campus:buildingSelected', { building: b }) });
 
@@ -206,7 +289,7 @@
       inner.setAttribute('tabindex', '0');
       inner.setAttribute('role', 'button');
       inner.setAttribute('aria-label', b.name);
-      inner.addEventListener('click', () => bounceMarker(inner));
+      inner.addEventListener('click', () => bounceMarker(inner, 0));
       inner.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') dispatch('campus:buildingSelected', { building: b });
       });
@@ -498,12 +581,13 @@
       zoom: DEFAULT_ZOOM,
       minZoom: 14,
       maxZoom: 20,
-      pitchWithRotate: false, // flat 2D only: no tilt/rotate gestures
-      dragRotate: false,
+      minPitch: 0,
+      maxPitch: 0, // hard lock: the map itself never tilts, only rotates
+      pitchWithRotate: false, // right-drag/two-finger changes bearing, never pitch
+      dragRotate: true, // rotating the flat map IS allowed
       touchZoomRotate: true,
       attributionControl: { compact: true }
     });
-    map.touchZoomRotate?.disableRotation();
 
     const ready = new Promise((resolve) => {
       map.on('load', () => {
@@ -524,6 +608,16 @@
         addBuildingsLayer();
         addLandmarksLayer();
         addEmergencyLayer();
+
+        // Decorative "illustrated guide map" layer: grass ground, textured
+        // lake + reeds, procedurally scattered trees, extruded 3D building
+        // blocks and bridge glyphs — all derived at runtime from the data
+        // already loaded above, no dataset edits needed. Safe to skip if
+        // scenery.js wasn't loaded for some reason.
+        if (global.CampusScenery) {
+          try { global.CampusScenery.init(map, data); }
+          catch (err) { console.warn('CampusScenery failed to initialize:', err); }
+        }
 
         // Fit the initial view — and cap how far the map can be panned — to
         // whatever is actually in /data (boundary + buildings + landmarks)
@@ -554,6 +648,9 @@
     setRoadColor,
     setBaseTheme,
     computeContentBounds,
+    resetNorth: () => map.easeTo({ bearing: 0, duration: 450 }),
+    getBearing: () => map.getBearing(),
+    onRotate: (cb) => map.on('rotate', () => cb(map.getBearing())),
     CAMPUS_CENTER
   };
 })(window);
