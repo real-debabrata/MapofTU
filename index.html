@@ -108,12 +108,15 @@
     </div>
   </aside>
 
-  <!-- ============ Map controls: zoom only (flat 2D map — no rotate/tilt) ============ -->
+  <!-- ============ Map controls: zoom + compass (map rotates, stays flat) ============ -->
   <div class="map-controls">
     <div class="zoom-stack">
       <button id="zoom-in" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
       <button id="zoom-out" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
     </div>
+    <button id="reset-north" class="btn-compass" aria-pressed="false" aria-label="Reset map rotation to north (drag with right-click or two fingers to rotate)">
+      <svg class="btn-compass__needle" width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L15 12 L12 22 L9 12 Z" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="var(--cream-paper)"/></svg>
+    </button>
   </div>
 
   <!-- ============ Floating Action Button: Locate Me ============ -->
@@ -199,6 +202,7 @@
 <!-- App modules, loaded in dependency order (no bundler by design) -->
 <script src="js/helpers.js"></script>
 <script src="js/dataLoader.js"></script>
+<script src="js/scenery.js"></script>
 <script src="js/map.js"></script>
 <script src="js/routing.js"></script>
 <script src="js/search.js"></script>
